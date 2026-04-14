@@ -1,0 +1,1348 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>关于 - NEV MONITOR</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* --- PAGE-SPECIFIC OVERRIDES --- */
+        html, body {
+            overflow: auto;
+            height: auto;
+        }
+        body {
+            min-height: 100vh;
+        }
+        .dashboard-main {
+            display: none;
+        }
+
+        /* --- ABOUT PAGE CONTAINER --- */
+        .about-container {
+            position: relative;
+            z-index: 5;
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 32px 24px 48px;
+        }
+
+        /* --- PAGE TITLE BAR --- */
+        .page-title-bar {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-glow);
+            position: relative;
+        }
+        .page-title-bar::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent 5%, var(--accent-cyan) 50%, transparent 95%);
+            opacity: 0.5;
+        }
+        .page-title-bar .title-icon {
+            width: 4px;
+            height: 40px;
+            background: var(--accent-cyan);
+            border-radius: 2px;
+            box-shadow: 0 0 12px rgba(0, 240, 255, 0.5);
+            flex-shrink: 0;
+        }
+        .page-title-bar h2 {
+            font-family: var(--font-display);
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: 4px;
+            color: var(--accent-cyan);
+            text-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
+            line-height: 1.2;
+        }
+        .page-title-bar .title-sub {
+            font-family: var(--font-display);
+            font-size: 10px;
+            font-weight: 400;
+            letter-spacing: 6px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* --- SECTION --- */
+        .about-section {
+            margin-bottom: 40px;
+        }
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(0, 240, 255, 0.08);
+        }
+        .section-header .section-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-cyan);
+            box-shadow: 0 0 8px rgba(0, 240, 255, 0.5);
+            flex-shrink: 0;
+        }
+        .section-header h3 {
+            font-family: var(--font-display);
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 3px;
+            color: var(--text-primary);
+        }
+        .section-header .section-badge {
+            font-family: var(--font-display);
+            font-size: 9px;
+            letter-spacing: 2px;
+            color: var(--text-muted);
+            padding: 2px 8px;
+            border: 1px solid rgba(74, 90, 122, 0.3);
+            border-radius: 2px;
+            margin-left: auto;
+        }
+
+        /* --- DARK PANEL CARD (reusable) --- */
+        .dark-panel {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-glow);
+            border-radius: 6px;
+            padding: 24px;
+            position: relative;
+            overflow: hidden;
+            transition: border-color 0.3s;
+        }
+        .dark-panel:hover {
+            border-color: var(--border-glow-strong);
+        }
+        /* Corner decorations */
+        .dark-panel::before,
+        .dark-panel::after {
+            content: '';
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            z-index: 2;
+            pointer-events: none;
+        }
+        .dark-panel::before {
+            top: 0;
+            left: 0;
+            border-top: 2px solid var(--accent-cyan);
+            border-left: 2px solid var(--accent-cyan);
+            opacity: 0.5;
+        }
+        .dark-panel::after {
+            bottom: 0;
+            right: 0;
+            border-bottom: 2px solid var(--accent-cyan);
+            border-right: 2px solid var(--accent-cyan);
+            opacity: 0.5;
+        }
+        /* Extra corners via inner element */
+        .dark-panel .corner-tr,
+        .dark-panel .corner-bl {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            z-index: 2;
+            pointer-events: none;
+        }
+        .dark-panel .corner-tr {
+            top: 0;
+            right: 0;
+            border-top: 2px solid var(--accent-cyan);
+            border-right: 2px solid var(--accent-cyan);
+            opacity: 0.35;
+        }
+        .dark-panel .corner-bl {
+            bottom: 0;
+            left: 0;
+            border-bottom: 2px solid var(--accent-cyan);
+            border-left: 2px solid var(--accent-cyan);
+            opacity: 0.35;
+        }
+
+        /* --- INTRO SECTION --- */
+        .intro-text {
+            font-size: 14px;
+            line-height: 1.9;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+        .intro-text strong {
+            color: var(--accent-cyan);
+            font-weight: 500;
+        }
+
+        /* Highlight items row */
+        .highlight-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+        .highlight-card {
+            background: rgba(0, 240, 255, 0.03);
+            border: 1px solid rgba(0, 240, 255, 0.1);
+            border-radius: 4px;
+            padding: 20px 16px;
+            text-align: center;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        .highlight-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+            opacity: 0.5;
+        }
+        .highlight-card:hover {
+            background: rgba(0, 240, 255, 0.06);
+            border-color: rgba(0, 240, 255, 0.25);
+            transform: translateY(-2px);
+        }
+        .highlight-card .hl-value {
+            font-family: var(--font-display);
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--accent-cyan);
+            line-height: 1;
+            margin-bottom: 8px;
+            text-shadow: 0 0 16px rgba(0, 240, 255, 0.3);
+        }
+        .highlight-card .hl-value .hl-unit {
+            font-size: 14px;
+            font-weight: 400;
+            color: var(--text-secondary);
+        }
+        .highlight-card .hl-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+        .highlight-card .hl-desc {
+            font-size: 11px;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        /* --- CORE FEATURES (numbered cards) --- */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+        .feature-card {
+            display: flex;
+            gap: 20px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-glow);
+            border-radius: 6px;
+            padding: 24px;
+            position: relative;
+            overflow: hidden;
+            transition: border-color 0.3s;
+        }
+        .feature-card:hover {
+            border-color: var(--border-glow-strong);
+        }
+        .feature-card::before,
+        .feature-card::after {
+            content: '';
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            z-index: 2;
+            pointer-events: none;
+        }
+        .feature-card::before {
+            top: 0;
+            left: 0;
+            border-top: 2px solid var(--accent-cyan);
+            border-left: 2px solid var(--accent-cyan);
+            opacity: 0.5;
+        }
+        .feature-card::after {
+            bottom: 0;
+            right: 0;
+            border-bottom: 2px solid var(--accent-cyan);
+            border-right: 2px solid var(--accent-cyan);
+            opacity: 0.5;
+        }
+        .feature-card .corner-tr,
+        .feature-card .corner-bl {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            z-index: 2;
+            pointer-events: none;
+        }
+        .feature-card .corner-tr {
+            top: 0;
+            right: 0;
+            border-top: 2px solid var(--accent-cyan);
+            border-right: 2px solid var(--accent-cyan);
+            opacity: 0.35;
+        }
+        .feature-card .corner-bl {
+            bottom: 0;
+            left: 0;
+            border-bottom: 2px solid var(--accent-cyan);
+            border-left: 2px solid var(--accent-cyan);
+            opacity: 0.35;
+        }
+        .feature-num {
+            font-family: var(--font-display);
+            font-size: 36px;
+            font-weight: 900;
+            color: rgba(0, 240, 255, 0.12);
+            line-height: 1;
+            flex-shrink: 0;
+            min-width: 48px;
+            text-align: center;
+            padding-top: 4px;
+        }
+        .feature-content h4 {
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+        }
+        .feature-content p {
+            font-size: 13px;
+            line-height: 1.8;
+            color: var(--text-secondary);
+        }
+
+        /* --- DATA INDICATORS --- */
+        .indicators-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
+            gap: 12px;
+        }
+        .indicator-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-glow);
+            border-radius: 4px;
+            padding: 16px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+        .indicator-card:hover {
+            border-color: var(--border-glow-strong);
+            transform: translateY(-2px);
+        }
+        .indicator-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 3px;
+            height: 100%;
+            border-radius: 0 2px 2px 0;
+        }
+        .indicator-card:nth-child(1)::before { background: var(--accent-cyan); }
+        .indicator-card:nth-child(2)::before { background: var(--accent-teal); }
+        .indicator-card:nth-child(3)::before { background: var(--accent-orange); }
+        .indicator-card:nth-child(4)::before { background: var(--accent-green); }
+        .indicator-card:nth-child(5)::before { background: var(--accent-purple); }
+        .indicator-card:nth-child(6)::before { background: #f59e0b; }
+        .indicator-card:nth-child(7)::before { background: var(--accent-red); }
+        .indicator-card .ind-icon {
+            font-size: 18px;
+            margin-bottom: 8px;
+            display: block;
+        }
+        .indicator-card h4 {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+            letter-spacing: 0.5px;
+        }
+        .indicator-card p {
+            font-size: 11px;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        /* --- TECH HIGHLIGHTS --- */
+        .tech-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+        .tech-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-glow);
+            border-radius: 6px;
+            padding: 24px 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+        .tech-card:hover {
+            border-color: var(--border-glow-strong);
+            transform: translateY(-2px);
+        }
+        .tech-card::before,
+        .tech-card::after {
+            content: '';
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            z-index: 2;
+            pointer-events: none;
+        }
+        .tech-card::before {
+            top: 0;
+            left: 0;
+            border-top: 2px solid var(--accent-cyan);
+            border-left: 2px solid var(--accent-cyan);
+            opacity: 0.5;
+        }
+        .tech-card::after {
+            bottom: 0;
+            right: 0;
+            border-bottom: 2px solid var(--accent-cyan);
+            border-right: 2px solid var(--accent-cyan);
+            opacity: 0.5;
+        }
+        .tech-card .corner-tr,
+        .tech-card .corner-bl {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            z-index: 2;
+            pointer-events: none;
+        }
+        .tech-card .corner-tr {
+            top: 0;
+            right: 0;
+            border-top: 2px solid var(--accent-cyan);
+            border-right: 2px solid var(--accent-cyan);
+            opacity: 0.35;
+        }
+        .tech-card .corner-bl {
+            bottom: 0;
+            left: 0;
+            border-bottom: 2px solid var(--accent-cyan);
+            border-left: 2px solid var(--accent-cyan);
+            opacity: 0.35;
+        }
+        .tech-card .tech-icon {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: rgba(0, 240, 255, 0.06);
+            border: 1px solid rgba(0, 240, 255, 0.15);
+            font-size: 20px;
+        }
+        .tech-card h4 {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+        }
+        .tech-card p {
+            font-size: 12px;
+            line-height: 1.7;
+            color: var(--text-secondary);
+        }
+
+        /* --- TECH ARCHITECTURE --- */
+        .arch-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+        .arch-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-glow);
+            border-radius: 6px;
+            position: relative;
+            overflow: hidden;
+            transition: border-color 0.3s;
+        }
+        .arch-card:hover {
+            border-color: var(--border-glow-strong);
+        }
+        .arch-card::before,
+        .arch-card::after {
+            content: '';
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            z-index: 2;
+            pointer-events: none;
+        }
+        .arch-card::before {
+            top: 0;
+            left: 0;
+            border-top: 2px solid var(--accent-cyan);
+            border-left: 2px solid var(--accent-cyan);
+            opacity: 0.5;
+        }
+        .arch-card::after {
+            bottom: 0;
+            right: 0;
+            border-bottom: 2px solid var(--accent-cyan);
+            border-right: 2px solid var(--accent-cyan);
+            opacity: 0.5;
+        }
+        .arch-card .corner-tr,
+        .arch-card .corner-bl {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            z-index: 2;
+            pointer-events: none;
+        }
+        .arch-card .corner-tr {
+            top: 0;
+            right: 0;
+            border-top: 2px solid var(--accent-cyan);
+            border-right: 2px solid var(--accent-cyan);
+            opacity: 0.35;
+        }
+        .arch-card .corner-bl {
+            bottom: 0;
+            left: 0;
+            border-bottom: 2px solid var(--accent-cyan);
+            border-left: 2px solid var(--accent-cyan);
+            opacity: 0.35;
+        }
+        .arch-card-header {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border-glow);
+            background: rgba(0, 240, 255, 0.02);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .arch-card-header .arch-icon-bar {
+            width: 4px;
+            height: 16px;
+            background: var(--accent-cyan);
+            border-radius: 2px;
+            box-shadow: 0 0 8px rgba(0, 240, 255, 0.4);
+            flex-shrink: 0;
+        }
+        .arch-card:nth-child(2) .arch-icon-bar { background: var(--accent-teal); box-shadow: 0 0 8px rgba(0, 212, 170, 0.4); }
+        .arch-card:nth-child(3) .arch-icon-bar { background: var(--accent-orange); box-shadow: 0 0 8px rgba(255, 107, 53, 0.4); }
+        .arch-card:nth-child(4) .arch-icon-bar { background: var(--accent-purple); box-shadow: 0 0 8px rgba(168, 85, 247, 0.4); }
+        .arch-card-header h4 {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-primary);
+            letter-spacing: 1px;
+        }
+        .arch-card-body {
+            padding: 16px;
+        }
+        .arch-card-body .arch-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .arch-card-body .arch-item:last-child {
+            margin-bottom: 0;
+        }
+        .arch-card-body .arch-item .arch-dot {
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: var(--accent-cyan);
+            margin-top: 7px;
+            flex-shrink: 0;
+            opacity: 0.6;
+        }
+        .arch-card-body .arch-item .arch-label {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-primary);
+            line-height: 1.2;
+        }
+        .arch-card-body .arch-item .arch-desc {
+            font-size: 11px;
+            color: var(--text-muted);
+            line-height: 1.4;
+            margin-top: 1px;
+        }
+
+        /* --- CONTACT SECTION --- */
+        .contact-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+        .contact-card {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-glow);
+            border-radius: 6px;
+            padding: 20px 24px;
+            position: relative;
+            overflow: hidden;
+            transition: border-color 0.3s;
+        }
+        .contact-card:hover {
+            border-color: var(--border-glow-strong);
+        }
+        .contact-card::before,
+        .contact-card::after {
+            content: '';
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            z-index: 2;
+            pointer-events: none;
+        }
+        .contact-card::before {
+            top: 0;
+            left: 0;
+            border-top: 2px solid var(--accent-cyan);
+            border-left: 2px solid var(--accent-cyan);
+            opacity: 0.5;
+        }
+        .contact-card::after {
+            bottom: 0;
+            right: 0;
+            border-bottom: 2px solid var(--accent-cyan);
+            border-right: 2px solid var(--accent-cyan);
+            opacity: 0.5;
+        }
+        .contact-card .contact-icon {
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: rgba(0, 240, 255, 0.06);
+            border: 1px solid rgba(0, 240, 255, 0.15);
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+        .contact-card h4 {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+            letter-spacing: 1px;
+        }
+        .contact-card p {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+        .contact-card a {
+            color: var(--accent-cyan);
+            text-decoration: none;
+            transition: opacity 0.3s;
+        }
+        .contact-card a:hover {
+            opacity: 0.8;
+            text-decoration: underline;
+        }
+
+        /* --- COPYRIGHT --- */
+        .copyright-panel {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-glow);
+            border-radius: 6px;
+            padding: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+        .copyright-panel::before,
+        .copyright-panel::after {
+            content: '';
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            z-index: 2;
+            pointer-events: none;
+        }
+        .copyright-panel::before {
+            top: 0;
+            left: 0;
+            border-top: 2px solid var(--accent-cyan);
+            border-left: 2px solid var(--accent-cyan);
+            opacity: 0.5;
+        }
+        .copyright-panel::after {
+            bottom: 0;
+            right: 0;
+            border-bottom: 2px solid var(--accent-cyan);
+            border-right: 2px solid var(--accent-cyan);
+            opacity: 0.5;
+        }
+        .copyright-panel .corner-tr,
+        .copyright-panel .corner-bl {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            z-index: 2;
+            pointer-events: none;
+        }
+        .copyright-panel .corner-tr {
+            top: 0;
+            right: 0;
+            border-top: 2px solid var(--accent-cyan);
+            border-right: 2px solid var(--accent-cyan);
+            opacity: 0.35;
+        }
+        .copyright-panel .corner-bl {
+            bottom: 0;
+            left: 0;
+            border-bottom: 2px solid var(--accent-cyan);
+            border-left: 2px solid var(--accent-cyan);
+            opacity: 0.35;
+        }
+        .copyright-panel p {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.8;
+            margin-bottom: 8px;
+        }
+        .copyright-panel p:last-child {
+            margin-bottom: 0;
+            color: var(--text-muted);
+        }
+        .copyright-panel .copy-highlight {
+            color: var(--accent-cyan);
+        }
+
+        /* --- FOOTER (about page) --- */
+        .about-footer {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 24px;
+            height: 36px;
+            background: rgba(10, 18, 42, 0.95);
+            border-top: 1px solid var(--border-glow);
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 20px;
+        }
+        .about-footer::before {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent 5%, var(--accent-cyan) 50%, transparent 95%);
+            opacity: 0.3;
+        }
+        .about-footer .footer-brand {
+            font-family: var(--font-display);
+            font-size: 10px;
+            letter-spacing: 3px;
+            color: var(--text-muted);
+        }
+
+        /* --- FADE IN ANIMATIONS --- */
+        .about-section {
+            animation: fadeInUp 0.5s ease-out both;
+        }
+        .about-section:nth-child(1) { animation-delay: 0.05s; }
+        .about-section:nth-child(2) { animation-delay: 0.10s; }
+        .about-section:nth-child(3) { animation-delay: 0.15s; }
+        .about-section:nth-child(4) { animation-delay: 0.20s; }
+        .about-section:nth-child(5) { animation-delay: 0.25s; }
+        .about-section:nth-child(6) { animation-delay: 0.30s; }
+        .about-section:nth-child(7) { animation-delay: 0.35s; }
+        .about-section:nth-child(8) { animation-delay: 0.40s; }
+
+        /* --- RESPONSIVE --- */
+        @media (max-width: 1024px) {
+            .highlight-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .tech-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .arch-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        @media (max-width: 768px) {
+            .about-container {
+                padding: 20px 16px 36px;
+            }
+            .page-title-bar h2 {
+                font-size: 18px;
+                letter-spacing: 2px;
+            }
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+            .highlight-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .tech-grid {
+                grid-template-columns: 1fr;
+            }
+            .arch-grid {
+                grid-template-columns: 1fr;
+            }
+            .contact-grid {
+                grid-template-columns: 1fr;
+            }
+            .indicators-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        @media (max-width: 480px) {
+            .highlight-grid {
+                grid-template-columns: 1fr;
+            }
+            .indicators-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Scanline -->
+    <div class="scanline"></div>
+    <!-- Grid background -->
+    <div class="grid-bg"></div>
+
+    <!-- Header -->
+    <header class="dash-header">
+        <div class="header-left">
+            <div class="logo-mark">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                    <circle cx="16" cy="16" r="14" stroke="#00f0ff" stroke-width="1.5" opacity="0.6"/>
+                    <circle cx="16" cy="16" r="8" stroke="#00f0ff" stroke-width="1.5"/>
+                    <circle cx="16" cy="16" r="3" fill="#00f0ff"/>
+                    <line x1="16" y1="2" x2="16" y2="8" stroke="#00f0ff" stroke-width="1" opacity="0.5"/>
+                    <line x1="16" y1="24" x2="16" y2="30" stroke="#00f0ff" stroke-width="1" opacity="0.5"/>
+                    <line x1="2" y1="16" x2="8" y2="16" stroke="#00f0ff" stroke-width="1" opacity="0.5"/>
+                    <line x1="24" y1="16" x2="30" y2="16" stroke="#00f0ff" stroke-width="1" opacity="0.5"/>
+                </svg>
+            </div>
+            <div class="header-title-group">
+                <h1 class="dash-title">新能源汽车数据监控中心</h1>
+                <span class="dash-subtitle">NEW ENERGY VEHICLE DATA MONITORING CENTER</span>
+            </div>
+        </div>
+        <nav class="dash-nav">
+            <a href="../index.html" class="nav-item">数据总览</a>
+            <a href="prediction.html" class="nav-item">销量预测</a>
+            <a href="model.html" class="nav-item">模型说明</a>
+            <a href="about.html" class="nav-item active">关于</a>
+        </nav>
+        <div class="header-right">
+            <div class="clock-display">
+                <div class="clock-time" id="clock-time">--:--:--</div>
+                <div class="clock-date" id="clock-date">----/--/--</div>
+            </div>
+            <div class="status-indicator">
+                <span class="pulse-dot"></span>
+                <span>系统在线</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Dashboard main hidden for this page -->
+    <div class="dashboard-main"></div>
+
+    <!-- About Page Content -->
+    <div class="about-container">
+
+        <!-- Page Title Bar -->
+        <div class="page-title-bar">
+            <div class="title-icon"></div>
+            <div>
+                <h2>ABOUT NEV MONITOR</h2>
+                <div class="title-sub">PROJECT OVERVIEW &amp; TECHNICAL DETAILS</div>
+            </div>
+        </div>
+
+        <!-- ===================== PROJECT INTRO ===================== -->
+        <div class="about-section">
+            <div class="section-header">
+                <span class="section-dot"></span>
+                <h3>PROJECT INTRODUCTION</h3>
+                <span class="section-badge">项目简介</span>
+            </div>
+            <div class="dark-panel">
+                <span class="corner-tr"></span>
+                <span class="corner-bl"></span>
+                <p class="intro-text">
+                    <strong>新能源汽车数据监控中心 (NEV Monitor)</strong> 是一个基于大数据与人工智能技术的数据可视化分析平台。平台利用 CNN 卷积神经网络技术，结合多维度数据特征（销量、充电基础设施、经济指标、气象环境等），为全国 <strong>31 个省级行政区</strong>提供精准的新能源汽车销量预测与深度数据分析服务，旨在为政府决策、企业战略规划与投资分析提供科学的数据支撑。
+                </p>
+                <div class="highlight-grid">
+                    <div class="highlight-card">
+                        <div class="hl-value">31<span class="hl-unit"> 省份</span></div>
+                        <div class="hl-label">数据全面</div>
+                        <div class="hl-desc">覆盖全国 31 个省级行政区，全量数据监测</div>
+                    </div>
+                    <div class="highlight-card">
+                        <div class="hl-value">CNN</div>
+                        <div class="hl-label">AI 驱动</div>
+                        <div class="hl-desc">基于卷积神经网络深度学习模型</div>
+                    </div>
+                    <div class="highlight-card">
+                        <div class="hl-value">94.2<span class="hl-unit">%</span></div>
+                        <div class="hl-label">精准预测</div>
+                        <div class="hl-desc">模型预测准确率高达 94.2%</div>
+                    </div>
+                    <div class="highlight-card">
+                        <div class="hl-value">24<span class="hl-unit">h</span></div>
+                        <div class="hl-label">实时更新</div>
+                        <div class="hl-desc">自动化数据采集，保持信息时效性</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===================== CORE FEATURES ===================== -->
+        <div class="about-section">
+            <div class="section-header">
+                <span class="section-dot"></span>
+                <h3>CORE FEATURES</h3>
+                <span class="section-badge">核心功能</span>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <span class="corner-tr"></span>
+                    <span class="corner-bl"></span>
+                    <div class="feature-num">01</div>
+                    <div class="feature-content">
+                        <h4>全国地图可视化</h4>
+                        <p>交互式中国地图，支持省份点击与悬浮高亮，直观展示全国新能源汽车数据分布，支持年份、月份与多指标切换筛选。</p>
+                    </div>
+                </div>
+                <div class="feature-card">
+                    <span class="corner-tr"></span>
+                    <span class="corner-bl"></span>
+                    <div class="feature-num">02</div>
+                    <div class="feature-content">
+                        <h4>省份数据详情</h4>
+                        <p>深入分析各省份的各项数据指标，支持年度趋势变化与全国横向对比，多图表联动展示，数据洞察一目了然。</p>
+                    </div>
+                </div>
+                <div class="feature-card">
+                    <span class="corner-tr"></span>
+                    <span class="corner-bl"></span>
+                    <div class="feature-num">03</div>
+                    <div class="feature-content">
+                        <h4>全国数据对比</h4>
+                        <p>对比全国 31 个省份的数据差异，支持排名、分布统计等多维度分析，快速定位区域差异与发展趋势。</p>
+                    </div>
+                </div>
+                <div class="feature-card">
+                    <span class="corner-tr"></span>
+                    <span class="corner-bl"></span>
+                    <div class="feature-num">04</div>
+                    <div class="feature-content">
+                        <h4>CNN 智能预测</h4>
+                        <p>基于卷积神经网络的销量预测引擎，提供 3/6/12 个月预测周期，输出置信区间与特征重要性分析，辅助科学决策。</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===================== DATA INDICATORS ===================== -->
+        <div class="about-section">
+            <div class="section-header">
+                <span class="section-dot"></span>
+                <h3>DATA INDICATORS</h3>
+                <span class="section-badge">数据指标</span>
+            </div>
+            <div class="indicators-grid">
+                <div class="indicator-card">
+                    <span class="ind-icon">&#9679;</span>
+                    <h4>新能源汽车销量</h4>
+                    <p>各省份月度新能源汽车销售数据（万辆）</p>
+                </div>
+                <div class="indicator-card">
+                    <span class="ind-icon">&#9679;</span>
+                    <h4>充电桩密度</h4>
+                    <p>每万人拥有的公共充电桩数量</p>
+                </div>
+                <div class="indicator-card">
+                    <span class="ind-icon">&#9679;</span>
+                    <h4>省级月度油价</h4>
+                    <p>各省份 92#/95# 汽油平均价格</p>
+                </div>
+                <div class="indicator-card">
+                    <span class="ind-icon">&#9679;</span>
+                    <h4>空气质量指数</h4>
+                    <p>月度平均 AQI 空气质量指数</p>
+                </div>
+                <div class="indicator-card">
+                    <span class="ind-icon">&#9679;</span>
+                    <h4>平均气温</h4>
+                    <p>各省份月度平均温度数据</p>
+                </div>
+                <div class="indicator-card">
+                    <span class="ind-icon">&#9679;</span>
+                    <h4>最高/最低气温</h4>
+                    <p>月度极端温度（最高与最低）数据</p>
+                </div>
+                <div class="indicator-card">
+                    <span class="ind-icon">&#9679;</span>
+                    <h4>降水量</h4>
+                    <p>各省份月度累计降水量（mm）</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===================== TECH HIGHLIGHTS ===================== -->
+        <div class="about-section">
+            <div class="section-header">
+                <span class="section-dot"></span>
+                <h3>TECH HIGHLIGHTS</h3>
+                <span class="section-badge">技术亮点</span>
+            </div>
+            <div class="tech-grid">
+                <div class="tech-card">
+                    <span class="corner-tr"></span>
+                    <span class="corner-bl"></span>
+                    <div class="tech-icon">&#129302;</div>
+                    <h4>深度学习</h4>
+                    <p>采用 CNN 卷积神经网络，自动学习数据中的复杂时序模式，无需人工特征工程</p>
+                </div>
+                <div class="tech-card">
+                    <span class="corner-tr"></span>
+                    <span class="corner-bl"></span>
+                    <div class="tech-icon">&#9889;</div>
+                    <h4>高性能</h4>
+                    <p>前端原生 JavaScript 无框架依赖，后端 Node.js 高并发处理，全栈响应迅速</p>
+                </div>
+                <div class="tech-card">
+                    <span class="corner-tr"></span>
+                    <span class="corner-bl"></span>
+                    <div class="tech-icon">&#128241;</div>
+                    <h4>响应式设计</h4>
+                    <p>适配电脑、平板、手机等多种终端设备，随时随地访问数据监控中心</p>
+                </div>
+                <div class="tech-card">
+                    <span class="corner-tr"></span>
+                    <span class="corner-bl"></span>
+                    <div class="tech-icon">&#128274;</div>
+                    <h4>数据安全</h4>
+                    <p>所有数据来自国家统计局等公开渠道，不涉及个人隐私，符合数据保护法规</p>
+                </div>
+                <div class="tech-card">
+                    <span class="corner-tr"></span>
+                    <span class="corner-bl"></span>
+                    <div class="tech-icon">&#127760;</div>
+                    <h4>易于部署</h4>
+                    <p>轻量级架构设计，支持本地运行与云平台一键部署，开箱即用</p>
+                </div>
+                <div class="tech-card">
+                    <span class="corner-tr"></span>
+                    <span class="corner-bl"></span>
+                    <div class="tech-icon">&#128218;</div>
+                    <h4>可扩展性</h4>
+                    <p>模块化架构设计，易于添加新功能模块与新数据源，持续迭代升级</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===================== TECH ARCHITECTURE ===================== -->
+        <div class="about-section">
+            <div class="section-header">
+                <span class="section-dot"></span>
+                <h3>TECH ARCHITECTURE</h3>
+                <span class="section-badge">技术架构</span>
+            </div>
+            <div class="arch-grid">
+                <!-- Frontend -->
+                <div class="arch-card">
+                    <span class="corner-tr"></span>
+                    <span class="corner-bl"></span>
+                    <div class="arch-card-header">
+                        <span class="arch-icon-bar"></span>
+                        <h4>前端 Frontend</h4>
+                    </div>
+                    <div class="arch-card-body">
+                        <div class="arch-item">
+                            <span class="arch-dot"></span>
+                            <div>
+                                <div class="arch-label">HTML5 &amp; CSS3</div>
+                                <div class="arch-desc">现代化网页结构与响应式样式</div>
+                            </div>
+                        </div>
+                        <div class="arch-item">
+                            <span class="arch-dot"></span>
+                            <div>
+                                <div class="arch-label">原生 JavaScript</div>
+                                <div class="arch-desc">无框架依赖，轻量高效</div>
+                            </div>
+                        </div>
+                        <div class="arch-item">
+                            <span class="arch-dot"></span>
+                            <div>
+                                <div class="arch-label">ECharts 5.x</div>
+                                <div class="arch-desc">Apache 开源数据可视化引擎</div>
+                            </div>
+                        </div>
+                        <div class="arch-item">
+                            <span class="arch-dot"></span>
+                            <div>
+                                <div class="arch-label">Orbitron &amp; Noto Sans SC</div>
+                                <div class="arch-desc">科技风字体组合</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Backend -->
+                <div class="arch-card">
+                    <span class="corner-tr"></span>
+                    <span class="corner-bl"></span>
+                    <div class="arch-card-header">
+                        <span class="arch-icon-bar"></span>
+                        <h4>后端 Backend</h4>
+                    </div>
+                    <div class="arch-card-body">
+                        <div class="arch-item">
+                            <span class="arch-dot"></span>
+                            <div>
+                                <div class="arch-label">Node.js</div>
+                                <div class="arch-desc">高性能 JavaScript 运行时</div>
+                            </div>
+                        </div>
+                        <div class="arch-item">
+                            <span class="arch-dot"></span>
+                            <div>
+                                <div class="arch-label">Express</div>
+                                <div class="arch-desc">简洁灵活的 Web 框架</div>
+                            </div>
+                        </div>
+                        <div class="arch-item">
+                            <span class="arch-dot"></span>
+                            <div>
+                                <div class="arch-label">SQLite</div>
+                                <div class="arch-desc">轻量级嵌入式数据库</div>
+                            </div>
+                        </div>
+                        <div class="arch-item">
+                            <span class="arch-dot"></span>
+                            <div>
+                                <div class="arch-label">RESTful API</div>
+                                <div class="arch-desc">标准化接口设计</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- ML -->
+                <div class="arch-card">
+                    <span class="corner-tr"></span>
+                    <span class="corner-bl"></span>
+                    <div class="arch-card-header">
+                        <span class="arch-icon-bar"></span>
+                        <h4>机器学习 ML</h4>
+                    </div>
+                    <div class="arch-card-body">
+                        <div class="arch-item">
+                            <span class="arch-dot"></span>
+                            <div>
+                                <div class="arch-label">Python 3.x</div>
+                                <div class="arch-desc">数据科学与 AI 开发语言</div>
+                            </div>
+                        </div>
+                        <div class="arch-item">
+                            <span class="arch-dot"></span>
+                            <div>
+                                <div class="arch-label">TensorFlow / Keras</div>
+                                <div class="arch-desc">Google 深度学习框架</div>
+                            </div>
+                        </div>
+                        <div class="arch-item">
+                            <span class="arch-dot"></span>
+                            <div>
+                                <div class="arch-label">1D-CNN 模型</div>
+                                <div class="arch-desc">一维卷积神经网络时序预测</div>
+                            </div>
+                        </div>
+                        <div class="arch-item">
+                            <span class="arch-dot"></span>
+                            <div>
+                                <div class="arch-label">Pandas / NumPy</div>
+                                <div class="arch-desc">数据预处理与分析</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Data Collection -->
+                <div class="arch-card">
+                    <span class="corner-tr"></span>
+                    <span class="corner-bl"></span>
+                    <div class="arch-card-header">
+                        <span class="arch-icon-bar"></span>
+                        <h4>数据采集 Data</h4>
+                    </div>
+                    <div class="arch-card-body">
+                        <div class="arch-item">
+                            <span class="arch-dot"></span>
+                            <div>
+                                <div class="arch-label">Requests</div>
+                                <div class="arch-desc">HTTP 数据获取库</div>
+                            </div>
+                        </div>
+                        <div class="arch-item">
+                            <span class="arch-dot"></span>
+                            <div>
+                                <div class="arch-label">BeautifulSoup</div>
+                                <div class="arch-desc">HTML/XML 解析引擎</div>
+                            </div>
+                        </div>
+                        <div class="arch-item">
+                            <span class="arch-dot"></span>
+                            <div>
+                                <div class="arch-label">定时任务调度</div>
+                                <div class="arch-desc">自动化周期性数据更新</div>
+                            </div>
+                        </div>
+                        <div class="arch-item">
+                            <span class="arch-dot"></span>
+                            <div>
+                                <div class="arch-label">数据清洗管道</div>
+                                <div class="arch-desc">异常值检测与质量校验</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===================== CONTACT INFO ===================== -->
+        <div class="about-section">
+            <div class="section-header">
+                <span class="section-dot"></span>
+                <h3>CONTACT</h3>
+                <span class="section-badge">联系我们</span>
+            </div>
+            <div class="contact-grid">
+                <div class="contact-card">
+                    <span class="corner-tr" style="position:absolute;top:0;right:0;width:12px;height:12px;border-top:2px solid var(--accent-cyan);border-right:2px solid var(--accent-cyan);opacity:0.35;z-index:2;pointer-events:none;"></span>
+                    <span class="corner-bl" style="position:absolute;bottom:0;left:0;width:12px;height:12px;border-bottom:2px solid var(--accent-cyan);border-left:2px solid var(--accent-cyan);opacity:0.35;z-index:2;pointer-events:none;"></span>
+                    <div class="contact-icon">&#9993;</div>
+                    <div>
+                        <h4>电子邮件</h4>
+                        <p><a href="mailto:contact@nev-monitor.com">contact@nev-monitor.com</a></p>
+                    </div>
+                </div>
+                <div class="contact-card">
+                    <span class="corner-tr" style="position:absolute;top:0;right:0;width:12px;height:12px;border-top:2px solid var(--accent-cyan);border-right:2px solid var(--accent-cyan);opacity:0.35;z-index:2;pointer-events:none;"></span>
+                    <span class="corner-bl" style="position:absolute;bottom:0;left:0;width:12px;height:12px;border-bottom:2px solid var(--accent-cyan);border-left:2px solid var(--accent-cyan);opacity:0.35;z-index:2;pointer-events:none;"></span>
+                    <div class="contact-icon">&#128279;</div>
+                    <div>
+                        <h4>项目地址</h4>
+                        <p><a href="https://github.com/nev-monitor/ev-sales-prediction" target="_blank">github.com/nev-monitor/ev-sales-prediction</a></p>
+                    </div>
+                </div>
+                <div class="contact-card">
+                    <span class="corner-tr" style="position:absolute;top:0;right:0;width:12px;height:12px;border-top:2px solid var(--accent-cyan);border-right:2px solid var(--accent-cyan);opacity:0.35;z-index:2;pointer-events:none;"></span>
+                    <span class="corner-bl" style="position:absolute;bottom:0;left:0;width:12px;height:12px;border-bottom:2px solid var(--accent-cyan);border-left:2px solid var(--accent-cyan);opacity:0.35;z-index:2;pointer-events:none;"></span>
+                    <div class="contact-icon">&#128222;</div>
+                    <div>
+                        <h4>技术支持</h4>
+                        <p>工作日 09:00 - 18:00</p>
+                    </div>
+                </div>
+                <div class="contact-card">
+                    <span class="corner-tr" style="position:absolute;top:0;right:0;width:12px;height:12px;border-top:2px solid var(--accent-cyan);border-right:2px solid var(--accent-cyan);opacity:0.35;z-index:2;pointer-events:none;"></span>
+                    <span class="corner-bl" style="position:absolute;bottom:0;left:0;width:12px;height:12px;border-bottom:2px solid var(--accent-cyan);border-left:2px solid var(--accent-cyan);opacity:0.35;z-index:2;pointer-events:none;"></span>
+                    <div class="contact-icon">&#128172;</div>
+                    <div>
+                        <h4>意见反馈</h4>
+                        <p>欢迎通过邮件或 GitHub Issues 提交宝贵建议</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===================== COPYRIGHT ===================== -->
+        <div class="about-section">
+            <div class="section-header">
+                <span class="section-dot"></span>
+                <h3>COPYRIGHT</h3>
+                <span class="section-badge">版权声明</span>
+            </div>
+            <div class="copyright-panel">
+                <span class="corner-tr"></span>
+                <span class="corner-bl"></span>
+                <p>本平台所有内容，包括但不限于文字、图片、数据、图表、代码等，均为原创或获得合法授权使用。平台前端界面设计、后端服务架构及机器学习模型均享有知识产权保护。</p>
+                <p>数据来源：<span class="copy-highlight">国家统计局</span> / <span class="copy-highlight">中国气象局</span> / <span class="copy-highlight">国家发展和改革委员会</span> / <span class="copy-highlight">中国充电联盟</span> / <span class="copy-highlight">生态环境部</span> 等公开渠道。所有数据均经过合规性审查，不涉及任何个人隐私信息。</p>
+                <p>本平台仅供学习和研究使用，不得用于商业目的。未经授权，禁止复制、修改、分发本平台的任何部分。</p>
+                <p>&copy; 2024 NEV Monitor - 新能源汽车数据监控中心. All rights reserved.</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- About Footer -->
+    <footer class="about-footer">
+        <div class="footer-left">
+            <span class="footer-brand">NEV-MONITOR v3.2</span>
+        </div>
+        <div class="footer-center">
+            数据来源：国家统计局 / 中国充电联盟 / 气象局等公开渠道 &nbsp;|&nbsp; CNN预测引擎 v2.1
+        </div>
+        <div class="footer-right">
+            <span>&copy; 2024 NEV Monitor</span>
+        </div>
+    </footer>
+
+    <!-- Clock script (inline, no external JS) -->
+    <script>
+        (function() {
+            function updateClock() {
+                var now = new Date();
+                var h = String(now.getHours()).padStart(2, '0');
+                var m = String(now.getMinutes()).padStart(2, '0');
+                var s = String(now.getSeconds()).padStart(2, '0');
+                var timeEl = document.getElementById('clock-time');
+                if (timeEl) timeEl.textContent = h + ':' + m + ':' + s;
+                var y = now.getFullYear();
+                var mo = String(now.getMonth() + 1).padStart(2, '0');
+                var d = String(now.getDate()).padStart(2, '0');
+                var dateEl = document.getElementById('clock-date');
+                if (dateEl) dateEl.textContent = y + '/' + mo + '/' + d;
+            }
+            updateClock();
+            setInterval(updateClock, 1000);
+        })();
+    </script>
+</body>
+</html>

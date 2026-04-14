@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>省份数据详情 - 新能源汽车销量预测平台</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>新能源汽车销量预测平台</h1>
+            <nav>
+                <ul class="nav-menu">
+                    <li><a href="../index.html">首页</a></li>
+                    <li><a href="comparison.html">全国数据对比</a></li>
+                    <li><a href="prediction.html">销量预测</a></li>
+                    <li><a href="model.html">模型说明</a></li>
+                    <li><a href="about.html">关于我们</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="page-header">
+            <button class="back-btn" onclick="window.location.href='../index.html'">← 返回首页</button>
+            <h2 id="province-title">省份数据详情</h2>
+        </div>
+
+        <div class="filter-section">
+            <div class="filter-group">
+                <label for="year-select">选择年份：</label>
+                <select id="year-select">
+                    <option value="2019">2019年</option>
+                    <option value="2020">2020年</option>
+                    <option value="2021">2021年</option>
+                    <option value="2022">2022年</option>
+                    <option value="2023" selected>2023年</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="data-select">数据类型：</label>
+                <select id="data-select">
+                    <option value="ev_sales">新能源汽车销量</option>
+                    <option value="charging_density">充电桩密度</option>
+                    <option value="oil_price">省级月度油价</option>
+                    <option value="max_temp">地级市月度最高气温</option>
+                    <option value="min_temp">地级市月度最低气温</option>
+                    <option value="air_quality">地级市月度空气质量</option>
+                    <option value="avg_temp">地级市月度平均气温</option>
+                    <option value="precipitation">地级市月度降水量</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="charts-section">
+            <div class="chart-row">
+                <div class="chart-card">
+                    <h3>年度趋势变化</h3>
+                    <div id="trend-chart" style="width: 100%; height: 400px;"></div>
+                </div>
+            </div>
+            <div class="chart-row">
+                <div class="chart-card">
+                    <h3>全国省份对比</h3>
+                    <div id="comparison-chart" style="width: 100%; height: 500px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="data-summary">
+            <h3>数据概览</h3>
+            <div class="summary-grid" id="summary-grid">
+                <!-- 动态生成数据卡片 -->
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="footer-content">
+            <p>&copy; 2024 新能源汽车销量预测平台 | 数据来源：国家统计局、气象局等公开渠道</p>
+        </div>
+    </footer>
+
+    <script>
+        // 获取URL参数
+        const urlParams = new URLSearchParams(window.location.search);
+        const provinceName = urlParams.get('province') || '广东省';
+        document.getElementById('province-title').textContent = provinceName + ' - 数据详情';
+
+        // 数据类型配置
+        const dataConfig = {
+            ev_sales: { name: '新能源汽车销量', unit: '万辆' },
+            charging_density: { name: '充电桩密度', unit: '个/万人' },
+            oil_price: { name: '省级月度油价', unit: '元/升' },
+            max_temp: { name: '地级市月度最高气温', unit: '℃' },
+            min_temp: { name: '地级市月度最低气温', unit: '℃' },
+            air_quality: { name: '地级市月度空气质量', unit: 'AQI' },
+            avg_temp: { name: '地级市月度平均气温', unit: '℃' },
+            precipitation: { name: '地级市月度降水量', unit: 'mm' }
+        };
+
+        // 省份列表
+        const provinces = ['北京市', '天津市', '河北省', '山西省', '内蒙古自治区',
+            '辽宁省', '吉林省', '黑龙江省', '上海市', '江苏省', '浙江省', '安徽省',
+            '福建省', '江西省', '山东省', '河南省', '湖北省', '湖南省', '广东省',
+            '广西壮族自治区', '海南省', '重庆市', '四川省', '贵州省', '云南省',
+            '西藏自治区', '陕西省', '甘肃省', '青海省', '宁夏回族自治区', '新疆维吾尔自治区'];
+
+        // 生成模拟数据
+        function generateData() {
+            const year = document.getElementById('year-select').value;
+            const dataType = document.getElementById('data-select').value;
+            const config = dataConfig[dataType];
+
+            // 生成年度趋势数据（2019-2023）
+            const trendData = {
+                years: ['2019', '2020', '2021', '2022', '2023'],
+                values: []
+            };
+
+            const baseValue = {
+                ev_sales: Math.random() * 50 + 10,
+                charging_density: Math.random() * 300 + 50,
+                oil_price: Math.random() * 3 + 6,
+                max_temp: Math.random() * 15 + 25,
+                min_temp: Math.random() * 15 + 5,
+                air_quality: Math.random() * 80 + 40,
+                avg_temp: Math.random() * 20 + 10,
+                precipitation: Math.random() * 100 + 50
+            };
+
+            trendData.years.forEach((_, index) => {
+                const trend = 1 + index * 0.15; // 增长趋势
+                const random = 0.9 + Math.random() * 0.2;
+                trendData.values.push((baseValue[dataType] * trend * random).toFixed(2));
+            });
+
+            // 生成全国对比数据
+            const comparisonData = provinces.map(prov => {
+                const randomFactor = 0.8 + Math.random() * 0.4;
+                const base = baseValue[dataType];
+                const value = (base * randomFactor).toFixed(2);
+
+                // 为当前省份增加突出显示
+                if (prov === provinceName) {
+                    return { name: prov, value: (parseFloat(value) * 1.2).toFixed(2), highlight: true };
+                }
+                return { name: prov, value: value, highlight: false };
+            });
+
+            return {
+                trend: trendData,
+                comparison: comparisonData,
+                config: config,
+                currentYear: year,
+                currentType: dataType
+            };
+        }
+
+        // 初始化图表
+        const trendChart = echarts.init(document.getElementById('trend-chart'));
+        const comparisonChart = echarts.init(document.getElementById('comparison-chart'));
+
+        function updateCharts() {
+            const data = generateData();
+
+            // 更新趋势图
+            const trendOption = {
+                title: {
+                    text: `${provinceName}${data.config.name}年度趋势`,
+                    left: 'center'
+                },
+                tooltip: {
+                    trigger: 'axis'
+                },
+                xAxis: {
+                    type: 'category',
+                    data: data.trend.years
+                },
+                yAxis: {
+                    type: 'value',
+                    name: data.config.unit
+                },
+                series: [{
+                    name: data.config.name,
+                    type: 'line',
+                    data: data.trend.values,
+                    smooth: true,
+                    itemStyle: { color: '#4A90E2' },
+                    areaStyle: {
+                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                            { offset: 0, color: 'rgba(74, 144, 226, 0.3)' },
+                            { offset: 1, color: 'rgba(74, 144, 226, 0.05)' }
+                        ])
+                    }
+                }]
+            };
+            trendChart.setOption(trendOption);
+
+            // 更新对比图
+            const comparisonOption = {
+                title: {
+                    text: `全国各省份${data.config.name}对比（${data.currentYear}年）`,
+                    left: 'center'
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: { type: 'shadow' }
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '15%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: data.comparison.map(item => item.name),
+                    axisLabel: {
+                        rotate: 45,
+                        interval: 0
+                    }
+                },
+                yAxis: {
+                    type: 'value',
+                    name: data.config.unit
+                },
+                series: [{
+                    name: data.config.name,
+                    type: 'bar',
+                    data: data.comparison.map(item => ({
+                        value: item.value,
+                        itemStyle: {
+                            color: item.highlight ? '#E94B3C' : '#4A90E2'
+                        }
+                    }))
+                }]
+            };
+            comparisonChart.setOption(comparisonOption);
+
+            // 更新数据概览
+            updateSummary(data);
+        }
+
+        function updateSummary(data) {
+            const summaryGrid = document.getElementById('summary-grid');
+            const currentValue = data.trend.values[4];
+            const previousValue = data.trend.values[3];
+            const growth = ((currentValue - previousValue) / previousValue * 100).toFixed(1);
+
+            summaryGrid.innerHTML = `
+                <div class="summary-card">
+                    <h4>当前值（${data.currentYear}年）</h4>
+                    <p class="value">${currentValue} ${data.config.unit}</p>
+                </div>
+                <div class="summary-card">
+                    <h4>同比增长</h4>
+                    <p class="value ${growth >= 0 ? 'positive' : 'negative'}">${growth >= 0 ? '+' : ''}${growth}%</p>
+                </div>
+                <div class="summary-card">
+                    <h4>五年平均</h4>
+                    <p class="value">${(data.trend.values.reduce((a, b) => parseFloat(a) + parseFloat(b), 0) / 5).toFixed(2)} ${data.config.unit}</p>
+                </div>
+                <div class="summary-card">
+                    <h4>全国排名</h4>
+                    <p class="value">${provinces.indexOf(provinceName) + 1} / 31</p>
+                </div>
+            `;
+        }
+
+        // 事件监听
+        document.getElementById('year-select').addEventListener('change', updateCharts);
+        document.getElementById('data-select').addEventListener('change', updateCharts);
+
+        // 初始加载
+        updateCharts();
+
+        // 窗口大小改变时重绘图表
+        window.addEventListener('resize', () => {
+            trendChart.resize();
+            comparisonChart.resize();
+        });
+    </script>
+</body>
+</html>

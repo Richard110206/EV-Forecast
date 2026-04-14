@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>销量预测 - 新能源汽车数据监控中心</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        /* ── SUB-PAGE OVERRIDES ── */
+        html, body { overflow: auto; height: auto; min-height: 100%; }
+        body { display: flex; flex-direction: column; }
+        .dashboard-main { display: none; } /* hide dashboard grid on sub-pages */
+        .dash-footer { position: relative; }
+
+        /* ── PAGE LAYOUT ── */
+        .page-body {
+            position: relative;
+            z-index: 5;
+            flex: 1;
+            padding: 24px;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .page-title-bar {
+            margin-bottom: 24px;
+        }
+        .page-title-bar h2 {
+            font-family: var(--font-display);
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: 3px;
+            color: var(--accent-cyan);
+            text-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
+            margin-bottom: 6px;
+        }
+        .page-title-bar .page-desc {
+            font-size: 13px;
+            color: var(--text-muted);
+            letter-spacing: 1px;
+        }
+
+        /* ── CNN STATUS BAR ── */
+        .cnn-status-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .cnn-status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-glow);
+            border-radius: 4px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            letter-spacing: 1px;
+        }
+        .cnn-status-item .status-dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: var(--accent-green);
+            box-shadow: 0 0 6px var(--accent-green);
+            animation: pulse 2s ease-in-out infinite;
+        }
+        .cnn-status-item strong {
+            color: var(--accent-cyan);
+            font-weight: 500;
+        }
+
+        /* ── MAIN GRID ── */
+        .pred-grid {
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        /* ── INPUT PANEL ── */
+        .input-panel {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-glow);
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+        }
+        .input-panel::before,
+        .input-panel::after {
+            content: ''; position: absolute; width: 12px; height: 12px; z-index: 2; pointer-events: none;
+        }
+        .input-panel::before { top: 0; left: 0; border-top: 2px solid var(--accent-cyan); border-left: 2px solid var(--accent-cyan); opacity: 0.5; }
+        .input-panel::after { bottom: 0; right: 0; border-bottom: 2px solid var(--accent-cyan); border-right: 2px solid var(--accent-cyan); opacity: 0.5; }
+
+        .input-panel-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-glow);
+            background: rgba(0, 240, 255, 0.02);
+        }
+        .input-panel-header h3 {
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 1px;
+            color: var(--text-primary);
+        }
+        .input-panel-header .badge-cnn {
+            font-family: var(--font-display);
+            font-size: 9px;
+            letter-spacing: 2px;
+            color: var(--accent-green);
+            padding: 2px 8px;
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            border-radius: 2px;
+        }
+
+        .input-panel-body {
+            padding: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 14px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 11px;
+            color: var(--text-muted);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+        .form-group select,
+        .form-group input[type="number"] {
+            width: 100%;
+            padding: 8px 12px;
+            background: rgba(0, 240, 255, 0.04);
+            border: 1px solid rgba(0, 240, 255, 0.15);
+            border-radius: 3px;
+            color: var(--text-primary);
+            font-size: 13px;
+            font-family: var(--font-body);
+            outline: none;
+            transition: all 0.25s ease;
+        }
+        .form-group select {
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%237b8db5' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 28px;
+            cursor: pointer;
+        }
+        .form-group select option {
+            background: #0a0e27;
+            color: var(--text-primary);
+        }
+        .form-group select:focus,
+        .form-group input[type="number"]:focus {
+            border-color: var(--accent-cyan);
+            background: rgba(0, 240, 255, 0.08);
+            box-shadow: 0 0 12px rgba(0, 240, 255, 0.1);
+        }
+        .form-group input[type="number"]::-webkit-inner-spin-button {
+            opacity: 0.3;
+        }
+        .form-hint {
+            font-size: 10px;
+            color: var(--text-muted);
+            margin-top: 4px;
+            opacity: 0.7;
+        }
+
+        /* ── PREDICT BUTTON ── */
+        .predict-btn {
+            width: 100%;
+            padding: 12px 0;
+            margin-top: 8px;
+            background: linear-gradient(135deg, rgba(0, 240, 255, 0.15) 0%, rgba(0, 212, 170, 0.15) 100%);
+            border: 1px solid rgba(0, 240, 255, 0.35);
+            border-radius: 4px;
+            color: var(--accent-cyan);
+            font-family: var(--font-display);
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 3px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            position: relative;
+            overflow: hidden;
+        }
+        .predict-btn:hover {
+            background: linear-gradient(135deg, rgba(0, 240, 255, 0.25) 0%, rgba(0, 212, 170, 0.25) 100%);
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.15), inset 0 0 20px rgba(0, 240, 255, 0.05);
+        }
+        .predict-btn:active {
+            transform: scale(0.98);
+        }
+        .predict-btn.loading {
+            pointer-events: none;
+            color: transparent;
+        }
+        .predict-btn.loading::after {
+            content: '';
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 20px; height: 20px;
+            margin: -10px 0 0 -10px;
+            border: 2px solid transparent;
+            border-top-color: var(--accent-cyan);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── RESULT PANEL ── */
+        .result-panel {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-glow);
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+        .result-panel::before,
+        .result-panel::after {
+            content: ''; position: absolute; width: 12px; height: 12px; z-index: 2; pointer-events: none;
+        }
+        .result-panel::before { top: 0; left: 0; border-top: 2px solid var(--accent-teal); border-left: 2px solid var(--accent-teal); opacity: 0.5; }
+        .result-panel::after { bottom: 0; right: 0; border-bottom: 2px solid var(--accent-teal); border-right: 2px solid var(--accent-teal); opacity: 0.5; }
+
+        .result-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-glow);
+            background: rgba(0, 240, 255, 0.02);
+            flex-shrink: 0;
+        }
+
+        .result-body {
+            flex: 1;
+            min-height: 680px;
+            padding: 0;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+        .result-body.has-result {
+            align-items: stretch;
+            justify-content: flex-start;
+        }
+        .result-body:not(.has-result) {
+            align-items: center;
+            justify-content: center;
+        }
+
+        .result-placeholder {
+            text-align: center;
+            color: var(--text-muted);
+        }
+        .result-placeholder .ph-icon {
+            width: 72px; height: 72px;
+            margin: 0 auto 20px;
+            border: 2px dashed rgba(0, 240, 255, 0.12);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: phPulse 3s ease-in-out infinite;
+        }
+        @keyframes phPulse {
+            0%, 100% { border-color: rgba(0, 240, 255, 0.12); transform: scale(1); }
+            50% { border-color: rgba(0, 240, 255, 0.25); transform: scale(1.04); }
+        }
+        .result-placeholder .ph-icon svg { opacity: 0.25; }
+        .result-placeholder p { font-size: 13px; letter-spacing: 2px; }
+        .result-placeholder p.sub { font-size: 11px; margin-top: 8px; opacity: 0.5; }
+
+        /* ── RESULT DISPLAY (new card layout) ── */
+        .result-display {
+            display: none;
+            width: 100%;
+            height: 100%;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        .result-display.active { display: flex; }
+
+        /* KPI card row */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            padding: 14px 16px 10px;
+            border-bottom: 1px solid rgba(0, 240, 255, 0.08);
+            background: rgba(0, 240, 255, 0.015);
+        }
+        .kpi-card {
+            background: rgba(15, 25, 55, 0.6);
+            border: 1px solid rgba(0, 240, 255, 0.08);
+            border-radius: 5px;
+            padding: 12px 14px;
+            position: relative;
+            overflow: hidden;
+            transition: border-color 0.3s ease;
+        }
+        .kpi-card:hover {
+            border-color: rgba(0, 240, 255, 0.2);
+        }
+        .kpi-card::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            border-radius: 5px 5px 0 0;
+        }
+        .kpi-card.kpi-primary::after { background: linear-gradient(90deg, var(--accent-cyan), transparent); }
+        .kpi-card.kpi-trend::after { background: linear-gradient(90deg, var(--accent-green), transparent); }
+        .kpi-card.kpi-trend.down::after { background: linear-gradient(90deg, var(--accent-red), transparent); }
+        .kpi-card.kpi-range::after { background: linear-gradient(90deg, var(--accent-orange), transparent); }
+        .kpi-card.kpi-conf::after { background: linear-gradient(90deg, var(--accent-teal), transparent); }
+
+        .kpi-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+        .kpi-value {
+            font-family: var(--font-display);
+            font-size: 22px;
+            font-weight: 700;
+            line-height: 1;
+        }
+        .kpi-card.kpi-primary .kpi-value { color: var(--accent-cyan); text-shadow: 0 0 16px rgba(0, 240, 255, 0.2); }
+        .kpi-card.kpi-trend .kpi-value { color: var(--accent-green); }
+        .kpi-card.kpi-trend.down .kpi-value { color: var(--accent-red); }
+        .kpi-card.kpi-range .kpi-value { color: var(--accent-orange); font-size: 16px; }
+        .kpi-card.kpi-conf .kpi-value { color: var(--accent-teal); }
+
+        .kpi-sub {
+            font-size: 10px;
+            color: var(--text-muted);
+            margin-top: 4px;
+            letter-spacing: 0.5px;
+        }
+
+        /* Prediction chart area */
+        .pred-chart-area {
+            flex: 1;
+            min-height: 360px;
+            padding: 8px 8px 4px;
+            position: relative;
+        }
+        .pred-chart-area .chart-container {
+            position: absolute;
+            top: 8px; left: 8px; right: 8px; bottom: 4px;
+            min-height: 340px;
+        }
+
+        /* Monthly breakdown table */
+        .monthly-breakdown {
+            border-top: 1px solid rgba(0, 240, 255, 0.08);
+            padding: 0 16px 14px;
+        }
+        .monthly-breakdown-title {
+            font-size: 10px;
+            color: var(--text-muted);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            padding: 10px 0 8px;
+        }
+        .monthly-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        .monthly-table thead th {
+            text-align: left;
+            font-weight: 400;
+            font-size: 10px;
+            color: var(--text-muted);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            padding: 0 10px 8px;
+            border-bottom: 1px solid rgba(0, 240, 255, 0.08);
+        }
+        .monthly-table tbody td {
+            padding: 7px 10px;
+            color: var(--text-secondary);
+            border-bottom: 1px solid rgba(0, 240, 255, 0.04);
+            letter-spacing: 0.3px;
+        }
+        .monthly-table tbody tr:last-child td { border-bottom: none; }
+        .monthly-table tbody tr:hover td { background: rgba(0, 240, 255, 0.02); }
+        .monthly-table .td-month {
+            font-family: var(--font-display);
+            font-size: 10px;
+            color: var(--text-primary);
+            letter-spacing: 1px;
+        }
+        .monthly-table .td-val {
+            font-family: var(--font-display);
+            font-weight: 600;
+            color: var(--accent-orange);
+            font-size: 12px;
+        }
+        .monthly-table .td-bar {
+            width: 30%;
+        }
+        .td-bar-inner {
+            height: 4px;
+            background: linear-gradient(90deg, var(--accent-orange), rgba(255, 107, 53, 0.2));
+            border-radius: 2px;
+            transition: width 0.8s ease-out;
+        }
+        .monthly-table .td-conf {
+            font-family: var(--font-display);
+            font-size: 10px;
+            color: var(--accent-teal);
+        }
+
+        /* ── BOTTOM CHARTS ── */
+        .bottom-charts {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        .bottom-chart-box {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-glow);
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+        }
+        .bottom-chart-box::before,
+        .bottom-chart-box::after {
+            content: ''; position: absolute; width: 12px; height: 12px; z-index: 2; pointer-events: none;
+        }
+        .bottom-chart-box::before { top: 0; left: 0; border-top: 2px solid var(--accent-purple); border-left: 2px solid var(--accent-purple); opacity: 0.5; }
+        .bottom-chart-box::after { bottom: 0; right: 0; border-bottom: 2px solid var(--accent-purple); border-right: 2px solid var(--accent-purple); opacity: 0.5; }
+
+        .bottom-chart-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border-glow);
+            background: rgba(0, 240, 255, 0.02);
+            flex-shrink: 0;
+        }
+        .bottom-chart-header h3 {
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 1px;
+        }
+        .bottom-chart-header .panel-badge {
+            font-family: var(--font-display);
+            font-size: 9px;
+            letter-spacing: 2px;
+            color: var(--text-muted);
+            padding: 2px 8px;
+            border: 1px solid rgba(74, 90, 122, 0.3);
+            border-radius: 2px;
+        }
+        .bottom-chart-body {
+            position: relative;
+            height: 320px;
+        }
+        .bottom-chart-body .chart-container {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+        }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 1100px) {
+            .pred-grid { grid-template-columns: 1fr; }
+            .bottom-charts { grid-template-columns: 1fr; }
+        }
+
+        /* ── ANIMATIONS ── */
+        .input-panel, .result-panel, .bottom-chart-box {
+            animation: fadeInUp 0.5s ease-out both;
+        }
+        .input-panel { animation-delay: 0.1s; }
+        .result-panel { animation-delay: 0.2s; }
+        .bottom-chart-box:nth-child(1) { animation-delay: 0.3s; }
+        .bottom-chart-box:nth-child(2) { animation-delay: 0.4s; }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="scanline"></div>
+    <div class="grid-bg"></div>
+
+    <!-- Header -->
+    <header class="dash-header">
+        <div class="header-left">
+            <div class="logo-mark">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                    <circle cx="16" cy="16" r="14" stroke="#00f0ff" stroke-width="1.5" opacity="0.6"/>
+                    <circle cx="16" cy="16" r="8" stroke="#00f0ff" stroke-width="1.5"/>
+                    <circle cx="16" cy="16" r="3" fill="#00f0ff"/>
+                    <line x1="16" y1="2" x2="16" y2="8" stroke="#00f0ff" stroke-width="1" opacity="0.5"/>
+                    <line x1="16" y1="24" x2="16" y2="30" stroke="#00f0ff" stroke-width="1" opacity="0.5"/>
+                    <line x1="2" y1="16" x2="8" y2="16" stroke="#00f0ff" stroke-width="1" opacity="0.5"/>
+                    <line x1="24" y1="16" x2="30" y2="16" stroke="#00f0ff" stroke-width="1" opacity="0.5"/>
+                </svg>
+            </div>
+            <div class="header-title-group">
+                <h1 class="dash-title">新能源汽车数据监控中心</h1>
+                <span class="dash-subtitle">NEW ENERGY VEHICLE DATA MONITORING CENTER</span>
+            </div>
+        </div>
+        <nav class="dash-nav">
+            <a href="../index.html" class="nav-item">数据总览</a>
+            <a href="prediction.html" class="nav-item active">销量预测</a>
+            <a href="model.html" class="nav-item">模型说明</a>
+            <a href="about.html" class="nav-item">关于</a>
+        </nav>
+        <div class="header-right">
+            <div class="clock-display">
+                <div class="clock-time" id="clock-time">--:--:--</div>
+                <div class="clock-date" id="clock-date">----/--/--</div>
+            </div>
+            <div class="status-indicator">
+                <span class="pulse-dot"></span>
+                <span>系统在线</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Page Body -->
+    <div class="page-body">
+        <div class="page-title-bar">
+            <h2>CNN NEURAL NETWORK PREDICTION</h2>
+            <p class="page-desc">输入特征参数，CNN 卷积神经网络模型实时推算新能源汽车预测销量</p>
+        </div>
+
+        <!-- CNN Status -->
+        <div class="cnn-status-bar">
+            <div class="cnn-status-item">
+                <span class="status-dot"></span>
+                模型版本 <strong>CNN v2.1</strong>
+            </div>
+            <div class="cnn-status-item">
+                <span class="status-dot"></span>
+                训练数据 <strong>2019-2023</strong>
+            </div>
+            <div class="cnn-status-item">
+                <span class="status-dot"></span>
+                特征维度 <strong>8 x 60</strong>
+            </div>
+            <div class="cnn-status-item">
+                <span class="status-dot"></span>
+                预测精度 <strong>94.2%</strong>
+            </div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="pred-grid">
+            <!-- Left: Input Panel -->
+            <div class="input-panel">
+                <div class="input-panel-header">
+                    <span class="panel-icon" style="background:var(--accent-cyan);box-shadow:0 0 8px rgba(0,240,255,0.4);display:inline-block;width:4px;height:16px;border-radius:2px;"></span>
+                    <h3>特征参数输入</h3>
+                    <span class="badge-cnn">CNN INPUT</span>
+                </div>
+                <div class="input-panel-body">
+                    <div class="form-group">
+                        <label>目标省份</label>
+                        <select id="inp-province">
+                            <option value="广东省">广东省</option>
+                            <option value="江苏省">江苏省</option>
+                            <option value="浙江省">浙江省</option>
+                            <option value="山东省">山东省</option>
+                            <option value="河南省">河南省</option>
+                            <option value="上海市">上海市</option>
+                            <option value="北京市">北京市</option>
+                            <option value="四川省">四川省</option>
+                            <option value="湖北省">湖北省</option>
+                            <option value="湖南省">湖南省</option>
+                            <option value="安徽省">安徽省</option>
+                            <option value="福建省">福建省</option>
+                            <option value="河北省">河北省</option>
+                            <option value="陕西省">陕西省</option>
+                            <option value="重庆市">重庆市</option>
+                            <option value="辽宁省">辽宁省</option>
+                            <option value="广西壮族自治区">广西壮族自治区</option>
+                            <option value="江西省">江西省</option>
+                            <option value="山西省">山西省</option>
+                            <option value="云南省">云南省</option>
+                            <option value="贵州省">贵州省</option>
+                            <option value="天津市">天津市</option>
+                            <option value="吉林省">吉林省</option>
+                            <option value="黑龙江省">黑龙江省</option>
+                            <option value="内蒙古自治区">内蒙古自治区</option>
+                            <option value="甘肃省">甘肃省</option>
+                            <option value="新疆维吾尔自治区">新疆维吾尔自治区</option>
+                            <option value="海南省">海南省</option>
+                            <option value="宁夏回族自治区">宁夏回族自治区</option>
+                            <option value="青海省">青海省</option>
+                            <option value="西藏自治区">西藏自治区</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>本月历史销量 (万辆)</label>
+                        <input type="number" id="inp-sales" value="8.5" step="0.1" min="0">
+                        <div class="form-hint">该省上月新能源汽车实际销量</div>
+                    </div>
+
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                        <div class="form-group">
+                            <label>油价 (元/升)</label>
+                            <input type="number" id="inp-oil" value="7.8" step="0.1" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label>空气质量 (AQI)</label>
+                            <input type="number" id="inp-aqi" value="65" step="1" min="0">
+                        </div>
+                    </div>
+
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                        <div class="form-group">
+                            <label>平均气温 (℃)</label>
+                            <input type="number" id="inp-temp" value="22" step="0.5">
+                        </div>
+                        <div class="form-group">
+                            <label>降水量 (mm)</label>
+                            <input type="number" id="inp-rain" value="80" step="1" min="0">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>充电桩密度 (个/万人)</label>
+                        <input type="number" id="inp-charge" value="25.6" step="0.1" min="0">
+                        <div class="form-hint">该省每万人公共充电桩保有量</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>预测周期</label>
+                        <select id="inp-period">
+                            <option value="3">未来 3 个月</option>
+                            <option value="6" selected>未来 6 个月</option>
+                            <option value="12">未来 12 个月</option>
+                        </select>
+                    </div>
+
+                    <button class="predict-btn" id="btn-predict">
+                        EXECUTE PREDICTION
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right: Result Panel -->
+            <div class="result-panel">
+                <div class="result-panel-header">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <span class="panel-icon" style="background:var(--accent-teal);box-shadow:0 0 8px rgba(0,212,170,0.4);display:inline-block;width:4px;height:16px;border-radius:2px;"></span>
+                        <h3>预测输出</h3>
+                    </div>
+                    <span class="panel-badge">OUTPUT</span>
+                </div>
+                <div class="result-body">
+                    <!-- Placeholder -->
+                    <div class="result-placeholder" id="result-placeholder">
+                        <div class="ph-icon">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00f0ff" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                        </div>
+                        <p>等待模型输入参数</p>
+                        <p class="sub">请在左侧面板填写特征值后执行预测</p>
+                    </div>
+                    <!-- Actual result -->
+                    <div class="result-display" id="result-display">
+                        <!-- KPI Cards -->
+                        <div class="kpi-grid">
+                            <div class="kpi-card kpi-primary">
+                                <div class="kpi-label">预测销量</div>
+                                <div class="kpi-value" id="res-value">--</div>
+                                <div class="kpi-sub" id="res-province">--</div>
+                            </div>
+                            <div class="kpi-card kpi-trend" id="kpi-trend-card">
+                                <div class="kpi-label">环比趋势</div>
+                                <div class="kpi-value" id="res-trend">--</div>
+                                <div class="kpi-sub">较上月</div>
+                            </div>
+                            <div class="kpi-card kpi-range">
+                                <div class="kpi-label">置信区间</div>
+                                <div class="kpi-value" id="res-range">--</div>
+                                <div class="kpi-sub">万辆</div>
+                            </div>
+                            <div class="kpi-card kpi-conf">
+                                <div class="kpi-label">置信度</div>
+                                <div class="kpi-value" id="res-conf-text">--%</div>
+                                <div class="kpi-sub">模型评估</div>
+                            </div>
+                        </div>
+                        <!-- Trend Chart -->
+                        <div class="pred-chart-area">
+                            <div id="pred-chart" class="chart-container"></div>
+                        </div>
+                        <!-- Monthly Breakdown -->
+                        <div class="monthly-breakdown">
+                            <div class="monthly-breakdown-title">逐月预测明细</div>
+                            <table class="monthly-table">
+                                <thead>
+                                    <tr>
+                                        <th>月份</th>
+                                        <th>预测销量 (万辆)</th>
+                                        <th>趋势</th>
+                                        <th>置信度</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="monthly-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Charts -->
+        <div class="bottom-charts">
+            <div class="bottom-chart-box">
+                <div class="bottom-chart-header">
+                    <span class="panel-icon" style="background:var(--accent-purple);box-shadow:0 0 8px rgba(168,85,247,0.4);display:inline-block;width:4px;height:16px;border-radius:2px;"></span>
+                    <h3>特征重要性权重</h3>
+                    <span class="panel-badge">FEATURE WEIGHTS</span>
+                </div>
+                <div class="bottom-chart-body">
+                    <div id="feature-chart" class="chart-container"></div>
+                </div>
+            </div>
+            <div class="bottom-chart-box">
+                <div class="bottom-chart-header">
+                    <span class="panel-icon" style="background:var(--accent-orange);box-shadow:0 0 8px rgba(255,107,53,0.4);display:inline-block;width:4px;height:16px;border-radius:2px;"></span>
+                    <h3>多步预测置信度</h3>
+                    <span class="panel-badge">CONFIDENCE</span>
+                </div>
+                <div class="bottom-chart-body">
+                    <div id="confidence-chart" class="chart-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="dash-footer">
+        <div class="footer-left">
+            <span class="footer-brand">NEV-MONITOR v3.2</span>
+        </div>
+        <div class="footer-center">
+            CNN预测引擎 v2.1 &nbsp;|&nbsp; 数据来源：国家统计局 / 中国充电联盟 / 气象局等公开渠道
+        </div>
+        <div class="footer-right">
+            <span id="update-time">最后更新：--</span>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        // ── CLOCK ──
+        function tickClock() {
+            const now = new Date();
+            const te = document.getElementById('clock-time');
+            const de = document.getElementById('clock-date');
+            if (te) te.textContent = now.toLocaleTimeString('zh-CN', { hour12: false });
+            if (de) de.textContent = now.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
+        }
+        tickClock();
+        setInterval(tickClock, 1000);
+        document.getElementById('update-time').textContent = '最后更新：' + new Date().toLocaleString('zh-CN');
+
+        // ── ECHARTS THEME ──
+        const TT = {
+            backgroundColor: 'rgba(10, 18, 42, 0.95)',
+            borderColor: 'rgba(0, 240, 255, 0.25)',
+            borderWidth: 1,
+            textStyle: { color: '#e8edf5', fontSize: 12, fontFamily: "'Noto Sans SC', sans-serif" },
+            extraCssText: 'box-shadow: 0 4px 20px rgba(0,0,0,0.5); border-radius: 4px;'
+        };
+
+        // ── INIT CHARTS ──
+        let predChart = echarts.init(document.getElementById('pred-chart'));
+        let featureChart = echarts.init(document.getElementById('feature-chart'));
+        let confChart = echarts.init(document.getElementById('confidence-chart'));
+
+        // Feature importance (static)
+        const featureNames = ['充电桩密度', '历史销量', '油价', '空气质量', '平均气温', '降水量', '最高气温', '最低气温'];
+        const featureWeights = [0.25, 0.22, 0.18, 0.12, 0.10, 0.08, 0.03, 0.02];
+        const featureColors = ['#00f0ff', '#00d4aa', '#a855f7', '#ff6b35', '#fbbf24', '#f472b6', '#00ff88', '#7b8db5'];
+
+        featureChart.setOption({
+            tooltip: { ...TT, trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: '{b}: {c}' },
+            grid: { left: 6, right: 50, top: 8, bottom: 8, containLabel: true },
+            xAxis: { type: 'value', show: false, max: 0.3 },
+            yAxis: {
+                type: 'category', data: featureNames.reverse(),
+                axisLine: { show: false }, axisTick: { show: false },
+                axisLabel: { color: '#7b8db5', fontSize: 11 }
+            },
+            series: [{
+                type: 'bar', data: featureWeights.reverse(), barWidth: '50%',
+                itemStyle: {
+                    borderRadius: [0, 3, 3, 0],
+                    color: function(p) {
+                        return new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                            { offset: 0, color: 'rgba(0,0,0,0)' },
+                            { offset: 1, color: featureColors[p.dataIndex] }
+                        ]);
+                    }
+                },
+                label: { show: true, position: 'right', color: '#7b8db5', fontSize: 11, formatter: '{c}' }
+            }],
+            animationDuration: 1000
+        });
+
+        // Confidence chart (default 6 months)
+        function updateConfChart(period) {
+            const months = [];
+            const vals = [];
+            for (let i = 1; i <= period; i++) {
+                months.push('第' + i + '月');
+                vals.push(parseFloat((95 - i * (period <= 3 ? 2 : period <= 6 ? 1.5 : 1)).toFixed(1)));
+            }
+            confChart.setOption({
+                tooltip: { ...TT, trigger: 'axis', formatter: '{b}: {c}%' },
+                grid: { left: 6, right: 16, top: 16, bottom: 8, containLabel: true },
+                xAxis: {
+                    type: 'category', data: months,
+                    axisLine: { lineStyle: { color: 'rgba(0,240,255,0.15)' } },
+                    axisTick: { show: false },
+                    axisLabel: { color: '#7b8db5', fontSize: 11 }
+                },
+                yAxis: {
+                    type: 'value', min: 75, max: 100,
+                    splitLine: { lineStyle: { color: 'rgba(0,240,255,0.06)' } },
+                    axisLine: { show: false }, axisTick: { show: false },
+                    axisLabel: { color: '#4a5a7a', fontSize: 10 }
+                },
+                series: [{
+                    type: 'line', data: vals, smooth: true, symbol: 'circle', symbolSize: 8,
+                    lineStyle: { width: 3, color: '#ff6b35' },
+                    itemStyle: { color: '#ff6b35', borderColor: '#0a0e27', borderWidth: 2 },
+                    areaStyle: {
+                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                            { offset: 0, color: 'rgba(255, 107, 53, 0.25)' },
+                            { offset: 1, color: 'rgba(255, 107, 53, 0.0)' }
+                        ])
+                    },
+                    label: { show: true, position: 'top', color: '#7b8db5', fontSize: 10, formatter: '{c}%' }
+                }],
+                animationDuration: 1000
+            }, true);
+        }
+        updateConfChart(6);
+
+        // ── PREDICTION ──
+        document.getElementById('btn-predict').addEventListener('click', function() {
+            const btn = this;
+            btn.classList.add('loading');
+
+            const province = document.getElementById('inp-province').value;
+            const sales = parseFloat(document.getElementById('inp-sales').value) || 0;
+            const oil = parseFloat(document.getElementById('inp-oil').value) || 0;
+            const aqi = parseFloat(document.getElementById('inp-aqi').value) || 0;
+            const temp = parseFloat(document.getElementById('inp-temp').value) || 0;
+            const rain = parseFloat(document.getElementById('inp-rain').value) || 0;
+            const charge = parseFloat(document.getElementById('inp-charge').value) || 0;
+            const period = parseInt(document.getElementById('inp-period').value);
+
+            setTimeout(function() {
+                btn.classList.remove('loading');
+
+                // CNN simulation formula
+                const jitter = 0.95 + Math.random() * 0.1;
+                const base = sales * 0.3 + oil * 2 + charge * 1.5 + aqi * 0.1 + temp * 0.05 + rain * 0.02;
+                const predicted = parseFloat((base * jitter).toFixed(2));
+                const confidence = parseFloat((94 - (period - 3) * 1.2 - Math.random() * 2).toFixed(1));
+                const lower = parseFloat((predicted * (1 - (100 - confidence) / 200)).toFixed(2));
+                const upper = parseFloat((predicted * (1 + (100 - confidence) / 200)).toFixed(2));
+
+                // Multi-step predictions
+                const histMonths = [];
+                const histVals = [];
+                const now = new Date();
+                for (let i = 6; i >= 1; i--) {
+                    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                    histMonths.push(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'));
+                    const seasonal = 1 + Math.sin((6 - i) / 3) * 0.08;
+                    histVals.push(parseFloat((sales * (0.85 + i * 0.03) * seasonal * (0.96 + Math.random() * 0.08)).toFixed(2)));
+                }
+
+                const predMonths = [];
+                const predVals = [];
+                const predUpper = [];
+                const predLower = [];
+                const predConfs = [];
+                for (let i = 1; i <= period; i++) {
+                    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+                    predMonths.push(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'));
+                    const growth = 1.01 + i * 0.005 + (Math.random() - 0.5) * 0.01;
+                    const seasonal = 1 + Math.sin(i / 3) * 0.06;
+                    const v = parseFloat((predicted * Math.pow(growth, i) * seasonal).toFixed(2));
+                    const confDecay = Math.max(70, confidence - i * (period <= 3 ? 2 : 1.5));
+                    const spread = v * (100 - confDecay) / 200;
+                    predVals.push(v);
+                    predUpper.push(parseFloat((v + spread).toFixed(2)));
+                    predLower.push(parseFloat((v - spread).toFixed(2)));
+                    predConfs.push(parseFloat(confDecay.toFixed(1)));
+                }
+
+                // Update result display
+                document.getElementById('result-placeholder').style.display = 'none';
+                const rd = document.getElementById('result-display');
+                rd.classList.add('active');
+                document.querySelector('.result-body').classList.add('has-result');
+
+                // KPI cards
+                document.getElementById('res-value').textContent = predicted;
+                document.getElementById('res-province').textContent = province;
+                const trendPct = ((predicted - sales) / sales * 100).toFixed(1);
+                const trendEl = document.getElementById('res-trend');
+                trendEl.textContent = (trendPct >= 0 ? '+' : '') + trendPct + '%';
+                const trendCard = document.getElementById('kpi-trend-card');
+                trendCard.className = 'kpi-card kpi-trend' + (trendPct < 0 ? ' down' : '');
+                document.getElementById('res-range').textContent = lower + ' ~ ' + upper;
+                document.getElementById('res-conf-text').textContent = confidence + '%';
+
+                // Monthly breakdown table
+                const maxVal = Math.max.apply(null, predVals);
+                const tbody = document.getElementById('monthly-tbody');
+                let tableHTML = '';
+                for (let i = 0; i < period; i++) {
+                    const barW = Math.round(predVals[i] / maxVal * 100);
+                    const prev = i === 0 ? sales : predVals[i - 1];
+                    const change = ((predVals[i] - prev) / prev * 100).toFixed(1);
+                    const changeColor = change >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+                    const changeSign = change >= 0 ? '+' : '';
+                    tableHTML += '<tr>' +
+                        '<td class="td-month">' + predMonths[i] + '</td>' +
+                        '<td class="td-val">' + predVals[i].toFixed(2) + '</td>' +
+                        '<td class="td-bar"><div class="td-bar-inner" style="width:' + barW + '%"></div></td>' +
+                        '<td class="td-conf" style="color:' + changeColor + '">' + changeSign + change + '%</td>' +
+                        '</tr>';
+                }
+                tbody.innerHTML = tableHTML;
+
+                // Prediction chart
+                const allMonths = histMonths.concat(predMonths);
+                const histSeries = histVals.concat(new Array(period).fill(null));
+                const predSeries = new Array(histVals.length).fill(null).concat(predVals);
+                const upperSeries = new Array(histVals.length).fill(null).concat(predUpper);
+                const lowerSeries = new Array(histVals.length).fill(null).concat(predLower);
+
+                predChart.setOption({
+                    tooltip: {
+                        ...TT, trigger: 'axis',
+                        formatter: function(ps) {
+                            let s = '<div style="font-size:14px;font-weight:600;margin-bottom:6px;color:#e8edf5">' + ps[0].name + '</div>';
+                            ps.forEach(function(p) {
+                                if (p.value != null && p.seriesName !== '置信上界' && p.seriesName !== '置信下界' && p.seriesName !== '预测分界') {
+                                    s += '<div style="font-size:13px;line-height:22px">' + p.marker + ' ' + p.seriesName + '：<b style="font-size:14px">' + p.value + '</b> 万辆</div>';
+                                }
+                            });
+                            return s;
+                        }
+                    },
+                    legend: {
+                        data: [
+                            { name: '历史销量', icon: 'roundRect' },
+                            { name: 'CNN预测', icon: 'roundRect' },
+                            { name: '95%置信区间', icon: 'rect' }
+                        ],
+                        top: 8, right: 12,
+                        textStyle: { color: '#e8edf5', fontSize: 14, fontWeight: 500, fontFamily: "'Noto Sans SC', sans-serif" },
+                        itemWidth: 28, itemHeight: 6, itemGap: 24,
+                        icon: 'roundRect'
+                    },
+                    grid: { left: 6, right: 20, top: 56, bottom: 12, containLabel: true },
+                    xAxis: {
+                        type: 'category', data: allMonths,
+                        axisLine: { lineStyle: { color: 'rgba(0,240,255,0.15)', width: 1 } },
+                        axisTick: { show: false },
+                        axisLabel: { color: '#7b8db5', fontSize: 12, margin: 12 }
+                    },
+                    yAxis: {
+                        type: 'value',
+                        splitLine: { lineStyle: { color: 'rgba(0,240,255,0.06)', width: 1 } },
+                        axisLine: { show: false }, axisTick: { show: false },
+                        axisLabel: { color: '#7b8db5', fontSize: 12 },
+                        nameTextStyle: { color: '#7b8db5', fontSize: 12, padding: [0, 40, 0, 0] }
+                    },
+                    series: [
+                        {
+                            name: '历史销量', type: 'line', data: histSeries, smooth: true,
+                            symbol: 'circle', symbolSize: 10,
+                            lineStyle: { width: 4, color: '#00f0ff' },
+                            itemStyle: { color: '#00f0ff', borderColor: '#0a1227', borderWidth: 3 },
+                            areaStyle: {
+                                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                    { offset: 0, color: 'rgba(0, 240, 255, 0.22)' },
+                                    { offset: 0.6, color: 'rgba(0, 240, 255, 0.06)' },
+                                    { offset: 1, color: 'rgba(0, 240, 255, 0.0)' }
+                                ])
+                            },
+                            emphasis: { scale: true, itemStyle: { borderWidth: 4 } }
+                        },
+                        {
+                            name: 'CNN预测', type: 'line', data: predSeries, smooth: true,
+                            symbol: 'diamond', symbolSize: 12,
+                            lineStyle: { width: 4, color: '#ff6b35', type: [8, 4] },
+                            itemStyle: { color: '#ff6b35', borderColor: '#0a1227', borderWidth: 3 },
+                            areaStyle: {
+                                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                    { offset: 0, color: 'rgba(255, 107, 53, 0.18)' },
+                                    { offset: 0.6, color: 'rgba(255, 107, 53, 0.05)' },
+                                    { offset: 1, color: 'rgba(255, 107, 53, 0.0)' }
+                                ])
+                            },
+                            emphasis: { scale: true, itemStyle: { borderWidth: 4 } }
+                        },
+                        {
+                            name: '置信上界', type: 'line', data: upperSeries,
+                            lineStyle: { opacity: 0 }, symbol: 'none',
+                            areaStyle: { color: 'rgba(255, 107, 53, 0.10)' },
+                            stack: 'conf', emphasis: { disabled: true }
+                        },
+                        {
+                            name: '置信下界', type: 'line', data: lowerSeries,
+                            lineStyle: { opacity: 0 }, symbol: 'none',
+                            areaStyle: { color: 'rgba(255, 107, 53, 0.18)' },
+                            stack: 'conf', emphasis: { disabled: true }
+                        },
+                        {
+                            name: '预测分界', type: 'line',
+                            data: [histVals.length > 0 ? histVals[histVals.length - 1] : null],
+                            markLine: {
+                                silent: true,
+                                symbol: 'none',
+                                lineStyle: { color: 'rgba(0, 240, 255, 0.35)', type: 'dashed', width: 1.5 },
+                                label: {
+                                    show: true,
+                                    position: 'start',
+                                    formatter: '预测区间 →',
+                                    color: 'rgba(0, 240, 255, 0.5)',
+                                    fontSize: 11,
+                                    fontFamily: "'Noto Sans SC', sans-serif"
+                                },
+                                data: [{ xAxis: histMonths.length - 0.5 }]
+                            }
+                        }
+                    ],
+                    animationDuration: 1200,
+                    animationEasing: 'cubicOut'
+                }, true);
+
+                // Ensure chart renders at correct size after DOM layout settles
+                requestAnimationFrame(function() {
+                    predChart.resize();
+                });
+
+                // Update confidence chart for this period
+                updateConfChart(period);
+
+            }, 1500);
+        });
+
+        // Resize
+        window.addEventListener('resize', function() {
+            predChart.resize();
+            featureChart.resize();
+            confChart.resize();
+        });
+    })();
+    </script>
+</body>
+</html>
