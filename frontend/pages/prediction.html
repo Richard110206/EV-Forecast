@@ -887,95 +887,68 @@
             const charge = parseFloat(document.getElementById('inp-charge').value) || 0;
             const period = parseInt(document.getElementById('inp-period').value);
 
-            setTimeout(function() {
+            fetch('/api/prediction/predict', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    province, period,
+                    features: { sales, oil, aqi, temp, rain, charging: charge }
+                })
+            })
+            .then(r => r.json())
+            .then(res => {
                 btn.classList.remove('loading');
+                if (!res.success || !res.data) return;
 
-                // CNN simulation formula
-                const jitter = 0.95 + Math.random() * 0.1;
-                const base = sales * 0.3 + oil * 2 + charge * 1.5 + aqi * 0.1 + temp * 0.05 + rain * 0.02;
-                const predicted = parseFloat((base * jitter).toFixed(2));
-                const confidence = parseFloat((94 - (period - 3) * 1.2 - Math.random() * 2).toFixed(1));
-                const lower = parseFloat((predicted * (1 - (100 - confidence) / 200)).toFixed(2));
-                const upper = parseFloat((predicted * (1 + (100 - confidence) / 200)).toFixed(2));
+                var data = res.data;
+                var predictions = data.predictions;
+                var historical = data.historical || [];
+                var lastHist = historical.length > 0 ? historical[historical.length - 1].value : sales;
 
-                // Multi-step predictions
-                const histMonths = [];
-                const histVals = [];
-                const now = new Date();
-                for (let i = 6; i >= 1; i--) {
-                    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-                    histMonths.push(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'));
-                    const seasonal = 1 + Math.sin((6 - i) / 3) * 0.08;
-                    histVals.push(parseFloat((sales * (0.85 + i * 0.03) * seasonal * (0.96 + Math.random() * 0.08)).toFixed(2)));
-                }
-
-                const predMonths = [];
-                const predVals = [];
-                const predUpper = [];
-                const predLower = [];
-                const predConfs = [];
-                for (let i = 1; i <= period; i++) {
-                    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
-                    predMonths.push(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'));
-                    const growth = 1.01 + i * 0.005 + (Math.random() - 0.5) * 0.01;
-                    const seasonal = 1 + Math.sin(i / 3) * 0.06;
-                    const v = parseFloat((predicted * Math.pow(growth, i) * seasonal).toFixed(2));
-                    const confDecay = Math.max(70, confidence - i * (period <= 3 ? 2 : 1.5));
-                    const spread = v * (100 - confDecay) / 200;
-                    predVals.push(v);
-                    predUpper.push(parseFloat((v + spread).toFixed(2)));
-                    predLower.push(parseFloat((v - spread).toFixed(2)));
-                    predConfs.push(parseFloat(confDecay.toFixed(1)));
-                }
-
-                // Update result display
                 document.getElementById('result-placeholder').style.display = 'none';
-                const rd = document.getElementById('result-display');
+                var rd = document.getElementById('result-display');
                 rd.classList.add('active');
                 document.querySelector('.result-body').classList.add('has-result');
 
-                // KPI cards
-                document.getElementById('res-value').textContent = predicted;
+                document.getElementById('res-value').textContent = data.summary.avgMonthly;
                 document.getElementById('res-province').textContent = province;
-                const trendPct = ((predicted - sales) / sales * 100).toFixed(1);
-                const trendEl = document.getElementById('res-trend');
-                trendEl.textContent = (trendPct >= 0 ? '+' : '') + trendPct + '%';
-                const trendCard = document.getElementById('kpi-trend-card');
-                trendCard.className = 'kpi-card kpi-trend' + (trendPct < 0 ? ' down' : '');
-                document.getElementById('res-range').textContent = lower + ' ~ ' + upper;
-                document.getElementById('res-conf-text').textContent = confidence + '%';
+                var trendPct = data.summary.trendPct;
+                document.getElementById('res-trend').textContent = (trendPct >= 0 ? '+' : '') + trendPct + '%';
+                document.getElementById('kpi-trend-card').className = 'kpi-card kpi-trend' + (trendPct < 0 ? ' down' : '');
+                document.getElementById('res-range').textContent = predictions[0].lower + ' ~ ' + predictions[0].upper;
+                document.getElementById('res-conf-text').textContent = (data.confidences ? data.confidences[0] : 94) + '%';
 
-                // Monthly breakdown table
-                const maxVal = Math.max.apply(null, predVals);
-                const tbody = document.getElementById('monthly-tbody');
-                let tableHTML = '';
-                for (let i = 0; i < period; i++) {
-                    const barW = Math.round(predVals[i] / maxVal * 100);
-                    const prev = i === 0 ? sales : predVals[i - 1];
-                    const change = ((predVals[i] - prev) / prev * 100).toFixed(1);
-                    const changeColor = change >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
-                    const changeSign = change >= 0 ? '+' : '';
-                    tableHTML += '<tr>' +
-                        '<td class="td-month">' + predMonths[i] + '</td>' +
-                        '<td class="td-val">' + predVals[i].toFixed(2) + '</td>' +
-                        '<td class="td-bar"><div class="td-bar-inner" style="width:' + barW + '%"></div></td>' +
-                        '<td class="td-conf" style="color:' + changeColor + '">' + changeSign + change + '%</td>' +
-                        '</tr>';
-                }
+                var maxVal = Math.max.apply(null, predictions.map(function(p){ return p.value; }));
+                var tbody = document.getElementById('monthly-tbody');
+                var tableHTML = '';
+                predictions.forEach(function(p, i) {
+                    var barW = Math.round(p.value / maxVal * 100);
+                    var prev = i === 0 ? lastHist : predictions[i - 1].value;
+                    var change = ((p.value - prev) / prev * 100).toFixed(1);
+                    var changeColor = change >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+                    var changeSign = change >= 0 ? '+' : '';
+                    tableHTML += '<tr><td class="td-month">' + p.month + '</td><td class="td-val">' + p.value.toFixed(2) + '</td><td class="td-bar"><div class="td-bar-inner" style="width:' + barW + '%"></div></td><td class="td-conf" style="color:' + changeColor + '">' + changeSign + change + '%</td></tr>';
+                });
                 tbody.innerHTML = tableHTML;
 
-                // Prediction chart
-                const allMonths = histMonths.concat(predMonths);
-                const histSeries = histVals.concat(new Array(period).fill(null));
-                const predSeries = new Array(histVals.length).fill(null).concat(predVals);
-                const upperSeries = new Array(histVals.length).fill(null).concat(predUpper);
-                const lowerSeries = new Array(histVals.length).fill(null).concat(predLower);
+                var histMonths = historical.map(function(h){ return h.month; });
+                var histVals = historical.map(function(h){ return h.value; });
+                var predMonths = predictions.map(function(p){ return p.month; });
+                var predVals = predictions.map(function(p){ return p.value; });
+                var predUpper = predictions.map(function(p){ return p.upper; });
+                var predLower = predictions.map(function(p){ return p.lower; });
+
+                var allMonths = histMonths.concat(predMonths);
+                var histSeries = histVals.concat(new Array(period).fill(null));
+                var predSeries = new Array(histVals.length).fill(null).concat(predVals);
+                var upperSeries = new Array(histVals.length).fill(null).concat(predUpper);
+                var lowerSeries = new Array(histVals.length).fill(null).concat(predLower);
 
                 predChart.setOption({
                     tooltip: {
                         ...TT, trigger: 'axis',
                         formatter: function(ps) {
-                            let s = '<div style="font-size:14px;font-weight:600;margin-bottom:6px;color:#e8edf5">' + ps[0].name + '</div>';
+                            var s = '<div style="font-size:14px;font-weight:600;margin-bottom:6px;color:#e8edf5">' + ps[0].name + '</div>';
                             ps.forEach(function(p) {
                                 if (p.value != null && p.seriesName !== '置信上界' && p.seriesName !== '置信下界' && p.seriesName !== '预测分界') {
                                     s += '<div style="font-size:13px;line-height:22px">' + p.marker + ' ' + p.seriesName + '：<b style="font-size:14px">' + p.value + '</b> 万辆</div>';
@@ -984,104 +957,23 @@
                             return s;
                         }
                     },
-                    legend: {
-                        data: [
-                            { name: '历史销量', icon: 'roundRect' },
-                            { name: 'CNN预测', icon: 'roundRect' },
-                            { name: '95%置信区间', icon: 'rect' }
-                        ],
-                        top: 8, right: 12,
-                        textStyle: { color: '#e8edf5', fontSize: 14, fontWeight: 500, fontFamily: "'Noto Sans SC', sans-serif" },
-                        itemWidth: 28, itemHeight: 6, itemGap: 24,
-                        icon: 'roundRect'
-                    },
+                    legend: { data: [{ name: '历史销量', icon: 'roundRect' }, { name: 'CNN预测', icon: 'roundRect' }, { name: '95%置信区间', icon: 'rect' }], top: 8, right: 12, textStyle: { color: '#e8edf5', fontSize: 14, fontWeight: 500, fontFamily: "'Noto Sans SC', sans-serif" }, itemWidth: 28, itemHeight: 6, itemGap: 24 },
                     grid: { left: 6, right: 20, top: 56, bottom: 12, containLabel: true },
-                    xAxis: {
-                        type: 'category', data: allMonths,
-                        axisLine: { lineStyle: { color: 'rgba(0,240,255,0.15)', width: 1 } },
-                        axisTick: { show: false },
-                        axisLabel: { color: '#7b8db5', fontSize: 12, margin: 12 }
-                    },
-                    yAxis: {
-                        type: 'value',
-                        splitLine: { lineStyle: { color: 'rgba(0,240,255,0.06)', width: 1 } },
-                        axisLine: { show: false }, axisTick: { show: false },
-                        axisLabel: { color: '#7b8db5', fontSize: 12 },
-                        nameTextStyle: { color: '#7b8db5', fontSize: 12, padding: [0, 40, 0, 0] }
-                    },
+                    xAxis: { type: 'category', data: allMonths, axisLine: { lineStyle: { color: 'rgba(0,240,255,0.15)', width: 1 } }, axisTick: { show: false }, axisLabel: { color: '#7b8db5', fontSize: 12, margin: 12 } },
+                    yAxis: { type: 'value', splitLine: { lineStyle: { color: 'rgba(0,240,255,0.06)', width: 1 } }, axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: '#7b8db5', fontSize: 12 } },
                     series: [
-                        {
-                            name: '历史销量', type: 'line', data: histSeries, smooth: true,
-                            symbol: 'circle', symbolSize: 10,
-                            lineStyle: { width: 4, color: '#00f0ff' },
-                            itemStyle: { color: '#00f0ff', borderColor: '#0a1227', borderWidth: 3 },
-                            areaStyle: {
-                                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                                    { offset: 0, color: 'rgba(0, 240, 255, 0.22)' },
-                                    { offset: 0.6, color: 'rgba(0, 240, 255, 0.06)' },
-                                    { offset: 1, color: 'rgba(0, 240, 255, 0.0)' }
-                                ])
-                            },
-                            emphasis: { scale: true, itemStyle: { borderWidth: 4 } }
-                        },
-                        {
-                            name: 'CNN预测', type: 'line', data: predSeries, smooth: true,
-                            symbol: 'diamond', symbolSize: 12,
-                            lineStyle: { width: 4, color: '#ff6b35', type: [8, 4] },
-                            itemStyle: { color: '#ff6b35', borderColor: '#0a1227', borderWidth: 3 },
-                            areaStyle: {
-                                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                                    { offset: 0, color: 'rgba(255, 107, 53, 0.18)' },
-                                    { offset: 0.6, color: 'rgba(255, 107, 53, 0.05)' },
-                                    { offset: 1, color: 'rgba(255, 107, 53, 0.0)' }
-                                ])
-                            },
-                            emphasis: { scale: true, itemStyle: { borderWidth: 4 } }
-                        },
-                        {
-                            name: '置信上界', type: 'line', data: upperSeries,
-                            lineStyle: { opacity: 0 }, symbol: 'none',
-                            areaStyle: { color: 'rgba(255, 107, 53, 0.10)' },
-                            stack: 'conf', emphasis: { disabled: true }
-                        },
-                        {
-                            name: '置信下界', type: 'line', data: lowerSeries,
-                            lineStyle: { opacity: 0 }, symbol: 'none',
-                            areaStyle: { color: 'rgba(255, 107, 53, 0.18)' },
-                            stack: 'conf', emphasis: { disabled: true }
-                        },
-                        {
-                            name: '预测分界', type: 'line',
-                            data: [histVals.length > 0 ? histVals[histVals.length - 1] : null],
-                            markLine: {
-                                silent: true,
-                                symbol: 'none',
-                                lineStyle: { color: 'rgba(0, 240, 255, 0.35)', type: 'dashed', width: 1.5 },
-                                label: {
-                                    show: true,
-                                    position: 'start',
-                                    formatter: '预测区间 →',
-                                    color: 'rgba(0, 240, 255, 0.5)',
-                                    fontSize: 11,
-                                    fontFamily: "'Noto Sans SC', sans-serif"
-                                },
-                                data: [{ xAxis: histMonths.length - 0.5 }]
-                            }
-                        }
+                        { name: '历史销量', type: 'line', data: histSeries, smooth: true, symbol: 'circle', symbolSize: 10, lineStyle: { width: 4, color: '#00f0ff' }, itemStyle: { color: '#00f0ff', borderColor: '#0a1227', borderWidth: 3 }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(0,240,255,0.22)' }, { offset: 0.6, color: 'rgba(0,240,255,0.06)' }, { offset: 1, color: 'rgba(0,240,255,0.0)' }]) }, emphasis: { scale: true, itemStyle: { borderWidth: 4 } } },
+                        { name: 'CNN预测', type: 'line', data: predSeries, smooth: true, symbol: 'diamond', symbolSize: 12, lineStyle: { width: 4, color: '#ff6b35', type: [8, 4] }, itemStyle: { color: '#ff6b35', borderColor: '#0a1227', borderWidth: 3 }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(255,107,53,0.18)' }, { offset: 0.6, color: 'rgba(255,107,53,0.05)' }, { offset: 1, color: 'rgba(255,107,53,0.0)' }]) }, emphasis: { scale: true, itemStyle: { borderWidth: 4 } } },
+                        { name: '置信上界', type: 'line', data: upperSeries, lineStyle: { opacity: 0 }, symbol: 'none', areaStyle: { color: 'rgba(255,107,53,0.10)' }, stack: 'conf', emphasis: { disabled: true } },
+                        { name: '置信下界', type: 'line', data: lowerSeries, lineStyle: { opacity: 0 }, symbol: 'none', areaStyle: { color: 'rgba(255,107,53,0.18)' }, stack: 'conf', emphasis: { disabled: true } },
+                        { name: '预测分界', type: 'line', data: [histVals.length > 0 ? histVals[histVals.length - 1] : null], markLine: { silent: true, symbol: 'none', lineStyle: { color: 'rgba(0,240,255,0.35)', type: 'dashed', width: 1.5 }, label: { show: true, position: 'start', formatter: '预测区间 →', color: 'rgba(0,240,255,0.5)', fontSize: 11, fontFamily: "'Noto Sans SC', sans-serif" }, data: [{ xAxis: histMonths.length - 0.5 }] } }
                     ],
-                    animationDuration: 1200,
-                    animationEasing: 'cubicOut'
+                    animationDuration: 1200, animationEasing: 'cubicOut'
                 }, true);
-
-                // Ensure chart renders at correct size after DOM layout settles
-                requestAnimationFrame(function() {
-                    predChart.resize();
-                });
-
-                // Update confidence chart for this period
+                requestAnimationFrame(function() { predChart.resize(); });
                 updateConfChart(period);
-
-            }, 1500);
+            })
+            .catch(function(err) { btn.classList.remove('loading'); console.error('Prediction error:', err); });
         });
 
         // Resize
