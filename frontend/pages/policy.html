@@ -1,0 +1,1435 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>政策决策 - 新能源汽车数据监控中心</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        html, body { overflow: auto; height: auto; min-height: 100%; }
+        body { display: flex; flex-direction: column; }
+        .dashboard-main { display: none; }
+        .dash-footer { position: relative; }
+
+        .page-body {
+            position: relative;
+            z-index: 5;
+            flex: 1;
+            padding: 20px 24px;
+            max-width: 1600px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .page-title-bar { margin-bottom: 18px; }
+        .page-title-bar h2 {
+            font-family: var(--font-display);
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: 3px;
+            color: var(--accent-cyan);
+            text-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
+            margin-bottom: 6px;
+        }
+        .page-title-bar .page-desc {
+            font-size: 13px;
+            color: var(--text-muted);
+            letter-spacing: 1px;
+        }
+
+        /* ── STATUS BAR ── */
+        .status-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        .status-bar-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 14px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-glow);
+            border-radius: 4px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            letter-spacing: 1px;
+        }
+        .status-bar-item .status-dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: var(--accent-green);
+            box-shadow: 0 0 6px var(--accent-green);
+            animation: pulse 2s ease-in-out infinite;
+        }
+        .status-bar-item strong {
+            color: var(--accent-cyan);
+            font-weight: 500;
+        }
+
+        /* ── THREE COLUMN GRID ── */
+        .three-col-grid {
+            display: grid;
+            grid-template-columns: 300px 1fr 300px;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        /* ── PANEL BOX (sub-page) ── */
+        .sp-panel {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-glow);
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+        .sp-panel::before, .sp-panel::after {
+            content: ''; position: absolute; width: 12px; height: 12px; z-index: 2; pointer-events: none;
+        }
+        .sp-panel::before { top: 0; left: 0; border-top: 2px solid var(--accent-cyan); border-left: 2px solid var(--accent-cyan); opacity: 0.5; }
+        .sp-panel::after { bottom: 0; right: 0; border-bottom: 2px solid var(--accent-cyan); border-right: 2px solid var(--accent-cyan); opacity: 0.5; }
+
+        .sp-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border-glow);
+            background: rgba(0, 240, 255, 0.02);
+            flex-shrink: 0;
+        }
+        .sp-panel-header h3 {
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 1px;
+            color: var(--text-primary);
+        }
+        .sp-panel-body {
+            flex: 1;
+            min-height: 0;
+            padding: 6px;
+            position: relative;
+        }
+
+        .panel-accent-red .sp-panel::before { border-color: var(--accent-red); }
+        .panel-accent-red .sp-panel::after { border-color: var(--accent-red); }
+        .panel-accent-red .sp-panel-header h3 { color: var(--accent-red); }
+
+        .panel-accent-green .sp-panel::before { border-color: var(--accent-green); }
+        .panel-accent-green .sp-panel::after { border-color: var(--accent-green); }
+        .panel-accent-green .sp-panel-header h3 { color: var(--accent-green); }
+
+        .panel-accent-purple .sp-panel::before { border-color: var(--accent-purple); }
+        .panel-accent-purple .sp-panel::after { border-color: var(--accent-purple); }
+        .panel-accent-purple .sp-panel-header h3 { color: var(--accent-purple); }
+
+        .panel-accent-orange .sp-panel::before { border-color: var(--accent-orange); }
+        .panel-accent-orange .sp-panel::after { border-color: var(--accent-orange); }
+        .panel-accent-orange .sp-panel-header h3 { color: var(--accent-orange); }
+
+        /* ── LEFT COLUMN ── */
+        .left-col {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .left-col .sp-panel-body { min-height: 0; }
+
+        /* Flow cards */
+        .flow-list {
+            overflow-y: auto;
+            max-height: 320px;
+            padding: 6px;
+        }
+        .flow-list::-webkit-scrollbar { width: 4px; }
+        .flow-list::-webkit-scrollbar-track { background: transparent; }
+        .flow-list::-webkit-scrollbar-thumb { background: rgba(0,240,255,0.15); border-radius: 2px; }
+
+        .flow-card {
+            background: rgba(15, 25, 55, 0.5);
+            border: 1px solid rgba(0, 240, 255, 0.08);
+            border-radius: 4px;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            transition: border-color 0.3s;
+        }
+        .flow-card:hover { border-color: rgba(0, 240, 255, 0.2); }
+        .flow-card-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+        .flow-arrow {
+            color: var(--accent-cyan);
+            font-size: 12px;
+            font-family: var(--font-display);
+            letter-spacing: 2px;
+        }
+        .flow-province {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+        .flow-province.overheated { color: var(--accent-red); }
+        .flow-province.underdev { color: var(--accent-green); }
+        .flow-volume {
+            font-family: var(--font-display);
+            font-size: 11px;
+            color: var(--accent-orange);
+            margin-left: auto;
+        }
+        .flow-measures {
+            font-size: 10px;
+            color: var(--text-muted);
+            line-height: 1.5;
+            padding-left: 12px;
+            border-left: 2px solid rgba(0, 240, 255, 0.1);
+        }
+
+        /* ── CENTER COLUMN ── */
+        .center-col {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .map-chart-container {
+            position: relative;
+            height: 420px;
+        }
+        .map-chart-container .chart-container {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+        }
+        .sankey-chart-container {
+            position: relative;
+            height: 280px;
+        }
+        .sankey-chart-container .chart-container {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+        }
+
+        /* ── RIGHT COLUMN ── */
+        .right-col {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* ── SECTION BLOCK ── */
+        .section-block {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-glow);
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+            margin-bottom: 16px;
+        }
+        .section-block::before, .section-block::after {
+            content: ''; position: absolute; width: 12px; height: 12px; z-index: 2; pointer-events: none;
+        }
+        .section-block::before { top: 0; left: 0; border-top: 2px solid var(--accent-purple); border-left: 2px solid var(--accent-purple); opacity: 0.5; }
+        .section-block::after { bottom: 0; right: 0; border-bottom: 2px solid var(--accent-purple); border-right: 2px solid var(--accent-purple); opacity: 0.5; }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 18px;
+            border-bottom: 1px solid var(--border-glow);
+            background: rgba(0, 240, 255, 0.02);
+            flex-shrink: 0;
+        }
+        .section-header h3 {
+            font-size: 15px;
+            font-weight: 500;
+            letter-spacing: 1px;
+            color: var(--text-primary);
+        }
+        .section-body { padding: 16px 18px; }
+
+        /* ── AI SCHEME CARDS ── */
+        .scheme-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .scheme-controls select {
+            padding: 6px 28px 6px 10px;
+            background: rgba(0, 240, 255, 0.06);
+            border: 1px solid rgba(0, 240, 255, 0.2);
+            border-radius: 3px;
+            color: var(--accent-cyan);
+            font-size: 12px;
+            font-family: var(--font-body);
+            cursor: pointer;
+            outline: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%237b8db5' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+        }
+        .scheme-controls select option { background: #0a0e27; color: var(--text-primary); }
+
+        .ai-btn {
+            padding: 8px 20px;
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.2) 0%, rgba(0, 240, 255, 0.15) 100%);
+            border: 1px solid rgba(168, 85, 247, 0.4);
+            border-radius: 4px;
+            color: var(--accent-purple);
+            font-family: var(--font-display);
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .ai-btn:hover {
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.3) 0%, rgba(0, 240, 255, 0.25) 100%);
+            border-color: var(--accent-purple);
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.15);
+        }
+        .ai-btn.loading { pointer-events: none; color: transparent; }
+        .ai-btn.loading::after {
+            content: ''; position: absolute; top: 50%; left: 50%;
+            width: 18px; height: 18px; margin: -9px 0 0 -9px;
+            border: 2px solid transparent; border-top-color: var(--accent-purple);
+            border-radius: 50%; animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .schemes-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+            margin-top: 14px;
+        }
+
+        .scheme-card {
+            background: rgba(15, 25, 55, 0.6);
+            border: 1px solid rgba(0, 240, 255, 0.08);
+            border-radius: 5px;
+            overflow: hidden;
+            transition: border-color 0.3s;
+            animation: fadeInUp 0.5s ease-out both;
+        }
+        .scheme-card:nth-child(1) { animation-delay: 0.1s; border-top: 2px solid var(--accent-red); }
+        .scheme-card:nth-child(2) { animation-delay: 0.2s; border-top: 2px solid var(--accent-cyan); }
+        .scheme-card:nth-child(3) { animation-delay: 0.3s; border-top: 2px solid var(--accent-teal); }
+        .scheme-card:hover { border-color: rgba(0, 240, 255, 0.2); }
+
+        .scheme-card-header {
+            padding: 12px 14px 10px;
+            border-bottom: 1px solid rgba(0, 240, 255, 0.06);
+        }
+        .scheme-card-type {
+            font-family: var(--font-display);
+            font-size: 9px;
+            letter-spacing: 2px;
+            margin-bottom: 4px;
+        }
+        .scheme-card:nth-child(1) .scheme-card-type { color: var(--accent-red); }
+        .scheme-card:nth-child(2) .scheme-card-type { color: var(--accent-cyan); }
+        .scheme-card:nth-child(3) .scheme-card-type { color: var(--accent-teal); }
+
+        .scheme-card-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+        .scheme-card-desc {
+            font-size: 11px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+        .scheme-card-body { padding: 10px 14px; }
+
+        .policy-item {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(0, 240, 255, 0.04);
+        }
+        .policy-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        .policy-item-icon {
+            flex-shrink: 0;
+            width: 18px; height: 18px;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            margin-top: 2px;
+        }
+        .scheme-card:nth-child(1) .policy-item-icon { background: rgba(255,61,90,0.15); color: var(--accent-red); }
+        .scheme-card:nth-child(2) .policy-item-icon { background: rgba(0,240,255,0.15); color: var(--accent-cyan); }
+        .scheme-card:nth-child(3) .policy-item-icon { background: rgba(0,212,170,0.15); color: var(--accent-teal); }
+        .policy-item-content { flex: 1; }
+        .policy-item-title {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 2px;
+        }
+        .policy-item-detail {
+            font-size: 10px;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+        .policy-item-meta {
+            display: flex;
+            gap: 10px;
+            margin-top: 4px;
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+        .policy-item-meta span { display: flex; align-items: center; gap: 3px; }
+        .policy-item-target {
+            padding: 1px 5px;
+            border-radius: 2px;
+            font-size: 9px;
+            letter-spacing: 0.5px;
+        }
+        .target-gov { background: rgba(0,240,255,0.1); color: var(--accent-cyan); }
+        .target-oem { background: rgba(168,85,247,0.1); color: var(--accent-purple); }
+        .target-charge { background: rgba(0,212,170,0.1); color: var(--accent-teal); }
+
+        .scheme-card-footer {
+            padding: 10px 14px;
+            border-top: 1px solid rgba(0, 240, 255, 0.06);
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+        .effect-item {
+            text-align: center;
+        }
+        .effect-label {
+            font-size: 9px;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+        }
+        .effect-value {
+            font-family: var(--font-display);
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--accent-cyan);
+        }
+
+        .risk-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 500;
+        }
+        .risk-high { background: rgba(255,61,90,0.12); color: var(--accent-red); border: 1px solid rgba(255,61,90,0.2); }
+        .risk-medium { background: rgba(255,107,53,0.12); color: var(--accent-orange); border: 1px solid rgba(255,107,53,0.2); }
+        .risk-low { background: rgba(0,255,136,0.12); color: var(--accent-green); border: 1px solid rgba(0,255,136,0.2); }
+
+        .stakeholder-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 10px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+        .stakeholder-row:last-child { margin-bottom: 0; }
+        .stakeholder-row .sh-label {
+            min-width: 48px;
+            font-weight: 500;
+        }
+        .sh-label.gov { color: var(--accent-cyan); }
+        .sh-label.oem { color: var(--accent-purple); }
+        .sh-label.charge { color: var(--accent-teal); }
+
+        .overall-rec {
+            margin-top: 14px;
+            padding: 12px 16px;
+            background: rgba(0, 240, 255, 0.03);
+            border: 1px solid rgba(0, 240, 255, 0.08);
+            border-radius: 4px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+        .overall-rec strong {
+            color: var(--accent-cyan);
+        }
+
+        .ai-fallback-note {
+            font-size: 10px;
+            color: var(--accent-orange);
+            letter-spacing: 0.5px;
+            margin-top: 8px;
+            opacity: 0.8;
+        }
+
+        /* Placeholder */
+        .ai-placeholder {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+        }
+        .ai-placeholder svg { opacity: 0.2; margin-bottom: 12px; }
+        .ai-placeholder p { font-size: 13px; letter-spacing: 2px; }
+        .ai-placeholder p.sub { font-size: 11px; margin-top: 6px; opacity: 0.5; }
+
+        /* ── SIMULATOR ── */
+        .sim-section { margin-bottom: 16px; }
+        .sim-grid {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 16px;
+        }
+        .sim-sliders {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-glow);
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+        }
+        .sim-sliders::before, .sim-sliders::after {
+            content: ''; position: absolute; width: 12px; height: 12px; z-index: 2; pointer-events: none;
+        }
+        .sim-sliders::before { top: 0; left: 0; border-top: 2px solid var(--accent-orange); border-left: 2px solid var(--accent-orange); opacity: 0.5; }
+        .sim-sliders::after { bottom: 0; right: 0; border-bottom: 2px solid var(--accent-orange); border-right: 2px solid var(--accent-orange); opacity: 0.5; }
+
+        .sim-sliders-header {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border-glow);
+            background: rgba(0, 240, 255, 0.02);
+            flex-shrink: 0;
+        }
+        .sim-sliders-header h3 {
+            font-size: 13px; font-weight: 500; letter-spacing: 1px; color: var(--accent-orange);
+        }
+        .slider-group {
+            padding: 14px;
+        }
+        .slider-item {
+            margin-bottom: 18px;
+        }
+        .slider-item:last-child { margin-bottom: 0; }
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .slider-label span {
+            font-size: 12px;
+            color: var(--text-secondary);
+            letter-spacing: 0.5px;
+        }
+        .slider-value {
+            font-family: var(--font-display);
+            font-size: 12px;
+            color: var(--accent-cyan);
+            font-weight: 600;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 4px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: rgba(0, 240, 255, 0.1);
+            border-radius: 2px;
+            outline: none;
+            cursor: pointer;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px; height: 14px;
+            border-radius: 50%;
+            background: var(--accent-cyan);
+            box-shadow: 0 0 8px rgba(0, 240, 255, 0.4);
+            cursor: pointer;
+            transition: box-shadow 0.2s;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover {
+            box-shadow: 0 0 14px rgba(0, 240, 255, 0.6);
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 14px; height: 14px;
+            border: none;
+            border-radius: 50%;
+            background: var(--accent-cyan);
+            box-shadow: 0 0 8px rgba(0, 240, 255, 0.4);
+            cursor: pointer;
+        }
+
+        .sim-chart-box {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-glow);
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+        }
+        .sim-chart-box::before, .sim-chart-box::after {
+            content: ''; position: absolute; width: 12px; height: 12px; z-index: 2; pointer-events: none;
+        }
+        .sim-chart-box::before { top: 0; left: 0; border-top: 2px solid var(--accent-teal); border-left: 2px solid var(--accent-teal); opacity: 0.5; }
+        .sim-chart-box::after { bottom: 0; right: 0; border-bottom: 2px solid var(--accent-teal); border-right: 2px solid var(--accent-teal); opacity: 0.5; }
+
+        .sim-chart-header {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border-glow);
+            background: rgba(0, 240, 255, 0.02);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+        .sim-chart-header h3 { font-size: 13px; font-weight: 500; letter-spacing: 1px; color: var(--accent-teal); }
+        .sim-kpi-row {
+            display: flex; gap: 14px;
+        }
+        .sim-kpi {
+            font-size: 10px; color: var(--text-muted);
+        }
+        .sim-kpi strong {
+            color: var(--accent-cyan);
+            font-family: var(--font-display);
+            font-size: 12px;
+        }
+        .sim-chart-body {
+            position: relative;
+            height: 340px;
+        }
+        .sim-chart-body .chart-container {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+        }
+
+        /* ── ANIMATIONS ── */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .sp-panel, .section-block, .sim-sliders, .sim-chart-box {
+            animation: fadeInUp 0.5s ease-out both;
+        }
+
+        @media (max-width: 1200px) {
+            .three-col-grid { grid-template-columns: 260px 1fr 260px; }
+            .schemes-grid { grid-template-columns: 1fr; }
+            .sim-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 900px) {
+            .three-col-grid { grid-template-columns: 1fr; }
+            .dash-nav { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="scanline"></div>
+    <div class="grid-bg"></div>
+
+    <header class="dash-header">
+        <div class="header-left">
+            <div class="logo-mark">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                    <circle cx="16" cy="16" r="14" stroke="#00f0ff" stroke-width="1.5" opacity="0.6"/>
+                    <circle cx="16" cy="16" r="8" stroke="#00f0ff" stroke-width="1.5"/>
+                    <circle cx="16" cy="16" r="3" fill="#00f0ff"/>
+                    <line x1="16" y1="2" x2="16" y2="8" stroke="#00f0ff" stroke-width="1" opacity="0.5"/>
+                    <line x1="16" y1="24" x2="16" y2="30" stroke="#00f0ff" stroke-width="1" opacity="0.5"/>
+                    <line x1="2" y1="16" x2="8" y2="16" stroke="#00f0ff" stroke-width="1" opacity="0.5"/>
+                    <line x1="24" y1="16" x2="30" y2="16" stroke="#00f0ff" stroke-width="1" opacity="0.5"/>
+                </svg>
+            </div>
+            <div class="header-title-group">
+                <h1 class="dash-title">新能源汽车数据监控中心</h1>
+                <span class="dash-subtitle">NEW ENERGY VEHICLE DATA MONITORING CENTER</span>
+            </div>
+        </div>
+        <nav class="dash-nav">
+            <a href="../index.html" class="nav-item">数据总览</a>
+            <a href="prediction.html" class="nav-item">销量预测</a>
+            <a href="policy.html" class="nav-item active">政策决策</a>
+            <a href="model.html" class="nav-item">模型说明</a>
+            <a href="about.html" class="nav-item">关于</a>
+        </nav>
+        <div class="header-right">
+            <div class="clock-display">
+                <div class="clock-time" id="clock-time">--:--:--</div>
+                <div class="clock-date" id="clock-date">----/--/--</div>
+            </div>
+            <div class="status-indicator">
+                <span class="pulse-dot"></span>
+                <span>系统在线</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="page-body">
+        <div class="page-title-bar">
+            <h2>POLICY DECISION CENTER</h2>
+            <p class="page-desc">多方博弈视角下的区域均衡发展与政策模拟决策支持系统</p>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div class="status-bar-item"><span class="status-dot"></span>分析引擎 <strong>GAME-THEORY v1.0</strong></div>
+            <div class="status-bar-item"><span class="status-dot"></span>数据维度 <strong>31 x 6</strong></div>
+            <div class="status-bar-item"><span class="status-dot"></span>三方博弈 <strong>GOV / OEM / CHARGE</strong></div>
+            <div class="status-bar-item"><span class="status-dot"></span>AI 引擎 <strong>DEEPSEEK</strong></div>
+        </div>
+
+        <!-- Three Column Grid -->
+        <div class="three-col-grid">
+            <!-- LEFT COLUMN -->
+            <div class="left-col">
+                <div class="sp-panel" style="flex:1;min-height:340px;">
+                    <div class="sp-panel-header">
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <span style="display:inline-block;width:4px;height:14px;border-radius:2px;background:var(--accent-cyan);box-shadow:0 0 6px rgba(0,240,255,0.3);"></span>
+                            <h3>区域健康度排行</h3>
+                        </div>
+                        <span class="panel-badge">HEALTH INDEX</span>
+                    </div>
+                    <div class="sp-panel-body">
+                        <div id="health-bar-chart" class="chart-container"></div>
+                    </div>
+                </div>
+                <div class="sp-panel panel-accent-green" style="flex:1;min-height:320px;">
+                    <div class="sp-panel-header">
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <span style="display:inline-block;width:4px;height:14px;border-radius:2px;background:var(--accent-green);box-shadow:0 0 6px rgba(0,255,136,0.3);"></span>
+                            <h3>需求调控方案</h3>
+                        </div>
+                        <span class="panel-badge">DEMAND FLOW</span>
+                    </div>
+                    <div class="flow-list" id="flow-list">
+                        <div class="ai-placeholder" style="padding:20px;">
+                            <p>加载中...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CENTER COLUMN -->
+            <div class="center-col">
+                <div class="sp-panel" style="flex:3;">
+                    <div class="sp-panel-header">
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <span style="display:inline-block;width:4px;height:14px;border-radius:2px;background:var(--accent-cyan);box-shadow:0 0 6px rgba(0,240,255,0.3);"></span>
+                            <h3>全国策略地图</h3>
+                        </div>
+                        <span class="panel-badge">STRATEGY MAP</span>
+                    </div>
+                    <div class="sp-panel-body" style="padding:0;">
+                        <div class="map-chart-container">
+                            <div id="strategy-map" class="chart-container"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="sp-panel panel-accent-orange" style="flex:2;">
+                    <div class="sp-panel-header">
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <span style="display:inline-block;width:4px;height:14px;border-radius:2px;background:var(--accent-orange);box-shadow:0 0 6px rgba(255,107,53,0.3);"></span>
+                            <h3>需求流向图</h3>
+                        </div>
+                        <span class="panel-badge">SANKEY FLOW</span>
+                    </div>
+                    <div class="sp-panel-body" style="padding:0;">
+                        <div class="sankey-chart-container">
+                            <div id="sankey-chart" class="chart-container"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN -->
+            <div class="right-col">
+                <div class="sp-panel panel-accent-purple" style="flex:1;min-height:320px;">
+                    <div class="sp-panel-header">
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <span style="display:inline-block;width:4px;height:14px;border-radius:2px;background:var(--accent-purple);box-shadow:0 0 6px rgba(168,85,247,0.3);"></span>
+                            <h3>三方博弈雷达图</h3>
+                        </div>
+                        <span class="panel-badge">GAME RADAR</span>
+                    </div>
+                    <div class="sp-panel-body">
+                        <div id="radar-chart" class="chart-container"></div>
+                    </div>
+                </div>
+                <div class="sp-panel" style="flex:1;min-height:280px;">
+                    <div class="sp-panel-header">
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <span style="display:inline-block;width:4px;height:14px;border-radius:2px;background:var(--accent-red);box-shadow:0 0 6px rgba(255,61,90,0.3);"></span>
+                            <h3>博弈冲突矩阵</h3>
+                        </div>
+                        <span class="panel-badge">CONFLICT</span>
+                    </div>
+                    <div class="sp-panel-body">
+                        <div id="heatmap-chart" class="chart-container"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Strategy Recommendations -->
+        <div class="section-block">
+            <div class="section-header">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <span style="display:inline-block;width:4px;height:16px;border-radius:2px;background:var(--accent-purple);box-shadow:0 0 8px rgba(168,85,247,0.4);"></span>
+                    <h3>AI 智能政策建议</h3>
+                </div>
+                <div class="scheme-controls">
+                    <select id="ai-preference">
+                        <option value="balanced">稳健型</option>
+                        <option value="aggressive">激进型</option>
+                        <option value="conservative">保守型</option>
+                    </select>
+                    <button class="ai-btn" id="btn-ai-advice">GENERATE AI ADVICE</button>
+                </div>
+            </div>
+            <div class="section-body" id="ai-section-body">
+                <div class="ai-placeholder" id="ai-placeholder">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#00f0ff" stroke-width="1.5"><path d="M12 2a4 4 0 0 1 4 4v2a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z"/><path d="M16 14H8a6 6 0 0 0-6 6v1h20v-1a6 6 0 0 0-6-6z"/><circle cx="12" cy="6" r="1" fill="#00f0ff"/></svg>
+                    <p>点击上方按钮生成 AI 政策建议</p>
+                    <p class="sub">基于DeepSeek大模型，结合区域健康度与三方博弈分析</p>
+                </div>
+                <div id="ai-results" style="display:none;"></div>
+            </div>
+        </div>
+
+        <!-- Policy Simulator -->
+        <div class="sim-section">
+            <div class="section-block">
+                <div class="section-header">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <span style="display:inline-block;width:4px;height:16px;border-radius:2px;background:var(--accent-orange);box-shadow:0 0 8px rgba(255,107,53,0.4);"></span>
+                        <h3>政策模拟器</h3>
+                    </div>
+                    <span class="panel-badge">POLICY SIMULATOR</span>
+                </div>
+                <div class="sim-grid" style="padding:0;">
+                    <div class="sim-sliders">
+                        <div class="sim-sliders-header">
+                            <h3>政策参数调节</h3>
+                        </div>
+                        <div class="slider-group">
+                            <div class="slider-item">
+                                <div class="slider-label"><span>补贴力度</span><span class="slider-value" id="sv-subsidy">50</span></div>
+                                <input type="range" id="sl-subsidy" min="0" max="100" value="50">
+                            </div>
+                            <div class="slider-item">
+                                <div class="slider-label"><span>限购松紧</span><span class="slider-value" id="sv-purchase">50</span></div>
+                                <input type="range" id="sl-purchase" min="0" max="100" value="50">
+                            </div>
+                            <div class="slider-item">
+                                <div class="slider-label"><span>充电建设投入</span><span class="slider-value" id="sv-charging">50</span></div>
+                                <input type="range" id="sl-charging" min="0" max="100" value="50">
+                            </div>
+                            <div class="slider-item">
+                                <div class="slider-label"><span>碳配额比例</span><span class="slider-value" id="sv-carbon">50</span></div>
+                                <input type="range" id="sl-carbon" min="0" max="100" value="50">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="sim-chart-box">
+                        <div class="sim-chart-header">
+                            <h3>模拟效果对比</h3>
+                            <div class="sim-kpi-row">
+                                <div class="sim-kpi">总增长 <strong id="sk-growth">--</strong>%</div>
+                                <div class="sim-kpi">均衡度 <strong id="sk-balance">--</strong>%</div>
+                            </div>
+                        </div>
+                        <div class="sim-chart-body">
+                            <div id="sim-chart" class="chart-container"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="dash-footer">
+        <div class="footer-left">
+            <span class="footer-brand">NEV-MONITOR v3.2</span>
+        </div>
+        <div class="footer-center">
+            政策决策引擎 v1.0 &nbsp;|&nbsp; AI: DeepSeek &nbsp;|&nbsp; 数据来源：国家统计局 / 中国充电联盟
+        </div>
+        <div class="footer-right">
+            <span id="update-time">最后更新：--</span>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        // ── CLOCK ──
+        function tickClock() {
+            const now = new Date();
+            const te = document.getElementById('clock-time');
+            const de = document.getElementById('clock-date');
+            if (te) te.textContent = now.toLocaleTimeString('zh-CN', { hour12: false });
+            if (de) de.textContent = now.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
+        }
+        tickClock();
+        setInterval(tickClock, 1000);
+        document.getElementById('update-time').textContent = '最后更新：' + new Date().toLocaleString('zh-CN');
+
+        // ── ECHARTS THEME ──
+        const TT = {
+            backgroundColor: 'rgba(10, 18, 42, 0.95)',
+            borderColor: 'rgba(0, 240, 255, 0.25)',
+            borderWidth: 1,
+            textStyle: { color: '#e8edf5', fontSize: 12, fontFamily: "'Noto Sans SC', sans-serif" },
+            extraCssText: 'box-shadow: 0 4px 20px rgba(0,0,0,0.5); border-radius: 4px;'
+        };
+
+        // ── CHART INSTANCES ──
+        let healthBarChart = echarts.init(document.getElementById('health-bar-chart'));
+        let strategyMapChart = echarts.init(document.getElementById('strategy-map'));
+        let sankeyChart = echarts.init(document.getElementById('sankey-chart'));
+        let radarChart = echarts.init(document.getElementById('radar-chart'));
+        let heatmapChart = echarts.init(document.getElementById('heatmap-chart'));
+        let simChart = echarts.init(document.getElementById('sim-chart'));
+
+        // ── DATA CACHE ──
+        let healthData = null;
+        let flowData = null;
+        let stakeholderData = null;
+
+        // ── LOAD ALL DATA ──
+        async function loadAllData() {
+            try {
+                const [hRes, fRes, sRes] = await Promise.all([
+                    fetch('/api/policy/regional-health?year=2024'),
+                    fetch('/api/policy/demand-flow?year=2024'),
+                    fetch('/api/policy/stakeholder-analysis', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ year: 2024 }) })
+                ]);
+                const h = await hRes.json();
+                const f = await fRes.json();
+                const s = await sRes.json();
+                if (h.success) { healthData = h.data; renderHealthBar(healthData.provinces); updateKPIs(healthData); renderStrategyMap(healthData.provinces); }
+                if (f.success) { flowData = f.data; renderFlowCards(flowData.flows); renderSankey(flowData.flows, healthData ? healthData.overheated : [], healthData ? healthData.underdeveloped : []); }
+                if (s.success) { stakeholderData = s.data; renderRadar(stakeholderData.stakeholders); renderHeatmap(stakeholderData.conflicts); }
+            } catch (err) {
+                console.error('Data load error:', err);
+            }
+        }
+
+        // ── KPI UPDATE ──
+        function updateKPIs(data) {
+            const kpiCards = document.querySelectorAll('.kpi-bar .kpi-card');
+            if (kpiCards.length >= 4) {
+                kpiCards[0].querySelector('.kpi-value').textContent = data.summary.overheatedCount;
+                kpiCards[1].querySelector('.kpi-value').textContent = data.summary.underdevelopedCount;
+                kpiCards[2].querySelector('.kpi-value').textContent = (data.summary.totalOverflow || 0).toFixed(0);
+                kpiCards[3].querySelector('.kpi-value').textContent = data.summary.balanceIndex.toFixed(1);
+            }
+        }
+
+        // ── HEALTH BAR CHART ──
+        function renderHealthBar(provinces) {
+            const sorted = [...provinces].sort((a, b) => a.healthScore - b.healthScore);
+            const names = sorted.map(d => d.name.replace(/(省|市|壮族自治区|维吾尔自治区|回族自治区|自治区)/, '')).reverse();
+            const values = sorted.map(d => d.healthScore).reverse();
+            const colors = sorted.map(d => d.status === 'overheated' ? '#ff3d5a' : d.status === 'underdeveloped' ? '#00ff88' : '#00f0ff').reverse();
+
+            healthBarChart.setOption({
+                tooltip: { ...TT, trigger: 'axis', axisPointer: { type: 'shadow' },
+                    formatter: function(p) {
+                        const idx = values.length - 1 - p[0].dataIndex;
+                        const prov = sorted[idx];
+                        const statusText = prov.status === 'overheated' ? '过热' : prov.status === 'underdeveloped' ? '待扶持' : '健康';
+                        const statusColor = prov.status === 'overheated' ? '#ff3d5a' : prov.status === 'underdeveloped' ? '#00ff88' : '#00f0ff';
+                        return '<div style="font-size:13px">' + p[0].name + '</div>' +
+                            '健康度：<b style="color:#00f0ff">' + prov.healthScore + '</b><br>' +
+                            '销量：<b>' + prov.value + '</b> 万辆<br>' +
+                            '增速：<b>' + prov.growthRate + '%</b><br>' +
+                            '状态：<b style="color:' + statusColor + '">' + statusText + '</b>';
+                    }
+                },
+                grid: { left: 4, right: 40, top: 6, bottom: 6, containLabel: true },
+                xAxis: { type: 'value', show: false, max: 100 },
+                yAxis: {
+                    type: 'category', data: names,
+                    axisLine: { show: false }, axisTick: { show: false },
+                    axisLabel: { color: '#7b8db5', fontSize: 9 }
+                },
+                series: [{
+                    type: 'bar', data: values, barWidth: '55%',
+                    itemStyle: {
+                        borderRadius: [0, 2, 2, 0],
+                        color: function(p) { return colors[p.dataIndex]; }
+                    },
+                    label: { show: true, position: 'right', color: '#7b8db5', fontSize: 9, formatter: '{c}' }
+                }],
+                animationDuration: 1000
+            }, true);
+        }
+
+        // ── STRATEGY MAP ──
+        function renderStrategyMap(provinces) {
+            fetch('../js/china.json')
+                .then(r => r.json())
+                .then(chinaJson => {
+                    echarts.registerMap('china', chinaJson);
+                    setTimeout(() => {
+                        const mapData = provinces.map(p => ({
+                            name: p.name,
+                            value: p.healthScore,
+                            itemStyle: {
+                                color: p.status === 'overheated' ? '#ff3d5a' : p.status === 'underdeveloped' ? '#00ff88' : '#00b8d4',
+                                opacity: p.status === 'overheated' ? 0.9 : p.status === 'underdeveloped' ? 0.85 : 0.7
+                            }
+                        }));
+
+                        strategyMapChart.setOption({
+                            tooltip: { ...TT, trigger: 'item',
+                                formatter: function(p) {
+                                    if (!p.data) return p.name;
+                                    const prov = provinces.find(x => x.name === p.name);
+                                    if (!prov) return p.name;
+                                    const st = prov.status === 'overheated' ? '过热' : prov.status === 'underdeveloped' ? '待扶持' : '健康';
+                                    const sc = prov.status === 'overheated' ? '#ff3d5a' : prov.status === 'underdeveloped' ? '#00ff88' : '#00f0ff';
+                                    return '<div style="font-size:14px;font-weight:600;margin-bottom:4px">' + p.name + '</div>' +
+                                        '健康度：<b style="color:#00f0ff;font-size:16px">' + prov.healthScore + '</b><br>' +
+                                        '销量：<b>' + prov.value + '</b> 万辆 | 增速：<b>' + prov.growthRate + '%</b><br>' +
+                                        '充电密度：<b>' + prov.chargingDensity + '</b> 个/万人<br>' +
+                                        '状态：<b style="color:' + sc + '">' + st + '</b>';
+                                }
+                            },
+                            visualMap: {
+                                show: true, min: 0, max: 100,
+                                left: 8, bottom: 20,
+                                orient: 'vertical',
+                                text: ['高', '低'],
+                                textStyle: { color: '#a0b4d0', fontSize: 10 },
+                                calculable: false,
+                                itemWidth: 12, itemHeight: 100,
+                                inRange: { color: ['#1a0a2e', '#2d1b69', '#0a4a7a', '#0d7a6e', '#40b840', '#e8c800', '#ff3d5a'] },
+                                seriesIndex: 0
+                            },
+                            geo: {
+                                map: 'china', roam: true,
+                                itemStyle: { opacity: 0.95, borderWidth: 1, borderColor: 'rgba(0, 240, 255, 0.3)' },
+                                emphasis: { itemStyle: { color: '#00f0ff', opacity: 1 }, label: { show: true, formatter: '{b}', textStyle: { color: '#fff', fontSize: 12, backgroundColor: 'rgba(0,0,0,0.7)', padding: [4, 8], borderRadius: 3 } } },
+                                label: { show: false }
+                            },
+                            series: [{ type: 'map', map: 'china', geoIndex: 0, data: mapData }],
+                            animationDuration: 800
+                        }, true);
+
+                        window.addEventListener('resize', () => strategyMapChart.resize());
+                    }, 100);
+                })
+                .catch(err => {
+                    console.error('Map load error:', err);
+                    document.getElementById('strategy-map').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#ff3d5a;font-size:13px;">地图加载失败</div>';
+                });
+        }
+
+        // ── FLOW CARDS ──
+        function renderFlowCards(flows) {
+            const container = document.getElementById('flow-list');
+            if (!flows || flows.length === 0) {
+                container.innerHTML = '<div class="ai-placeholder" style="padding:20px;"><p>暂无需调控方案</p><p class="sub">当前各省份发展均衡</p></div>';
+                return;
+            }
+            let html = '';
+            flows.forEach(f => {
+                html += '<div class="flow-card">' +
+                    '<div class="flow-card-header">' +
+                    '<span class="flow-province overheated">' + f.source.replace(/(省|市|壮族自治区|维吾尔自治区|回族自治区|自治区)/, '') + '</span>' +
+                    '<span class="flow-arrow">&#8594;</span>' +
+                    '<span class="flow-province underdev">' + f.target.replace(/(省|市|壮族自治区|维吾尔自治区|回族自治区|自治区)/, '') + '</span>' +
+                    '<span class="flow-volume">+' + f.transferVolume + '万</span>' +
+                    '</div>' +
+                    '<div class="flow-measures">' + (f.measures ? f.measures[0] : '') + '</div>' +
+                    '</div>';
+            });
+            container.innerHTML = html;
+        }
+
+        // ── SANKEY CHART ──
+        function renderSankey(flows, overheated, underdeveloped) {
+            if (!flows || flows.length === 0) {
+                sankeyChart.setOption({
+                    title: { text: '暂无流向数据', left: 'center', top: 'center', textStyle: { color: '#4a5a7a', fontSize: 14, fontWeight: 400 } }
+                });
+                return;
+            }
+
+            // Build sankey nodes and links
+            const nodes = [];
+            const links = [];
+            const ohSet = new Set();
+            const udSet = new Set();
+
+            // Add category nodes
+            nodes.push({ name: '过热区域', itemStyle: { color: '#ff3d5a' } });
+            nodes.push({ name: '待扶持区域', itemStyle: { color: '#00ff88' } });
+
+            flows.forEach(f => {
+                if (!ohSet.has(f.source)) { nodes.push({ name: f.source }); ohSet.add(f.source); }
+                if (!udSet.has(f.target)) { nodes.push({ name: f.target }); udSet.add(f.target); }
+                links.push({ source: '过热区域', target: f.source, value: f.sourceValue * 0.3 });
+                links.push({ source: f.source, target: f.target, value: f.transferVolume * 5 });
+                links.push({ source: f.target, target: '待扶持区域', value: f.targetValue * 0.3 });
+            });
+
+            sankeyChart.setOption({
+                tooltip: { ...TT, trigger: 'item' },
+                series: [{
+                    type: 'sankey',
+                    layout: 'none',
+                    emphasis: { focus: 'adjacency' },
+                    nodeAlign: 'left',
+                    data: nodes,
+                    links: links,
+                    lineStyle: { color: 'gradient', curveness: 0.5, opacity: 0.3 },
+                    label: {
+                        color: '#a0b4d0',
+                        fontSize: 10,
+                        formatter: function(p) {
+                            return p.name.replace(/(省|市|壮族自治区|维吾尔自治区|回族自治区|自治区)/, '');
+                        }
+                    },
+                    itemStyle: { borderWidth: 0 },
+                    nodeWidth: 12,
+                    nodeGap: 8
+                }],
+                animationDuration: 1000
+            }, true);
+        }
+
+        // ── RADAR CHART ──
+        function renderRadar(stakeholders) {
+            if (!stakeholders) return;
+            const dims = Object.keys(stakeholders.government.goals);
+            const indicators = dims.map(d => ({ name: d, max: 100 }));
+
+            function getSeries(stakeholder, color, fillColor) {
+                const goalVals = dims.map(d => stakeholder.goals[d]);
+                const actualVals = dims.map(d => stakeholder.actual[d]);
+                return [
+                    {
+                        value: goalVals, name: stakeholder.name + '(目标)',
+                        lineStyle: { color: color, width: 2, type: 'dashed' },
+                        itemStyle: { color: color },
+                        areaStyle: { color: fillColor, opacity: 0.1 },
+                        symbol: 'circle', symbolSize: 5
+                    },
+                    {
+                        value: actualVals, name: stakeholder.name + '(实际)',
+                        lineStyle: { color: color, width: 2 },
+                        itemStyle: { color: color },
+                        areaStyle: { color: color, opacity: 0.2 },
+                        symbol: 'diamond', symbolSize: 6
+                    }
+                ];
+            }
+
+            radarChart.setOption({
+                tooltip: { ...TT },
+                legend: {
+                    data: ['政府(目标)', '政府(实际)', '车企(目标)', '车企(实际)', '充电运营(目标)', '充电运营(实际)'],
+                    top: 0, left: 4, right: 4,
+                    textStyle: { color: '#7b8db5', fontSize: 9 },
+                    itemWidth: 14, itemHeight: 6, itemGap: 6
+                },
+                radar: {
+                    center: ['50%', '55%'],
+                    radius: '62%',
+                    indicator: indicators,
+                    axisName: { color: '#7b8db5', fontSize: 10 },
+                    splitArea: { areaStyle: { color: ['rgba(0,240,255,0.02)', 'rgba(0,240,255,0.04)'] } },
+                    splitLine: { lineStyle: { color: 'rgba(0,240,255,0.08)' } },
+                    axisLine: { lineStyle: { color: 'rgba(0,240,255,0.12)' } }
+                },
+                series: [{
+                    type: 'radar',
+                    data: [
+                        ...getSeries(stakeholders.government, '#00f0ff', 'rgba(0,240,255,0.3)'),
+                        ...getSeries(stakeholders.oem, '#a855f7', 'rgba(168,85,247,0.3)'),
+                        ...getSeries(stakeholders.chargingOp, '#00d4aa', 'rgba(0,212,170,0.3)')
+                    ]
+                }],
+                animationDuration: 1000
+            }, true);
+        }
+
+        // ── HEATMAP CHART ──
+        function renderHeatmap(conflicts) {
+            if (!conflicts) return;
+            const parties = ['政府', '车企', '充电运营'];
+            const dims = [...new Set(conflicts.map(c => c.dimension))].slice(0, 5);
+            // Build tension matrix
+            const data = [];
+            const tensionMap = {};
+            conflicts.forEach(c => { tensionMap[c.dimension] = c.tensionLevel; });
+            dims.forEach((dim, di) => {
+                parties.forEach((p, pi) => {
+                    data.push([di, pi, tensionMap[dim] || 50]);
+                });
+            });
+
+            const maxT = Math.max(...conflicts.map(c => c.tensionLevel));
+
+            heatmapChart.setOption({
+                tooltip: { ...TT,
+                    formatter: function(p) {
+                        return dims[p.value[0]] + ' - ' + parties[p.value[1]] + '<br>张力指数：<b style="color:#ff6b35">' + p.value[2] + '</b>';
+                    }
+                },
+                grid: { left: 4, right: 40, top: 8, bottom: 8, containLabel: true },
+                xAxis: {
+                    type: 'category', data: dims,
+                    axisLine: { lineStyle: { color: 'rgba(0,240,255,0.12)' } },
+                    axisTick: { show: false },
+                    axisLabel: { color: '#7b8db5', fontSize: 9, rotate: 20 }
+                },
+                yAxis: {
+                    type: 'category', data: parties,
+                    axisLine: { show: false }, axisTick: { show: false },
+                    axisLabel: { color: '#7b8db5', fontSize: 10 }
+                },
+                visualMap: {
+                    show: false, min: 0, max: maxT,
+                    inRange: { color: ['#0a1628', '#0d2a4e', '#1a4a5a', '#c07020', '#ff3d5a'] }
+                },
+                series: [{
+                    type: 'heatmap',
+                    data: data,
+                    itemStyle: { borderRadius: 3, borderWidth: 2, borderColor: 'rgba(10,14,39,0.8)' },
+                    label: { show: true, color: '#e8edf5', fontSize: 12, fontWeight: 600, fontFamily: 'Orbitron', formatter: '{c}' },
+                    emphasis: { itemStyle: { shadowBlur: 10, shadowColor: 'rgba(255,61,90,0.5)' } }
+                }],
+                animationDuration: 800
+            }, true);
+        }
+
+        // ── AI ADVICE ──
+        document.getElementById('btn-ai-advice').addEventListener('click', function() {
+            const btn = this;
+            btn.classList.add('loading');
+            const preference = document.getElementById('ai-preference').value;
+
+            document.getElementById('ai-placeholder').style.display = 'none';
+            document.getElementById('ai-results').style.display = 'block';
+            document.getElementById('ai-results').innerHTML = '<div class="ai-placeholder"><p>AI 正在分析中，请稍候...</p></div>';
+
+            fetch('/api/policy/ai-advice', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ year: '2024', preference: preference })
+            })
+            .then(r => r.json())
+            .then(res => {
+                btn.classList.remove('loading');
+                if (res.success && res.data) {
+                    renderAISchemes(res.data, res.fallback);
+                } else {
+                    document.getElementById('ai-results').innerHTML = '<div class="ai-placeholder"><p>AI 服务暂时不可用</p></div>';
+                }
+            })
+            .catch(err => {
+                btn.classList.remove('loading');
+                document.getElementById('ai-results').innerHTML = '<div class="ai-placeholder"><p>请求失败，请重试</p></div>';
+            });
+        });
+
+        function renderAISchemes(data, isFallback) {
+            const container = document.getElementById('ai-results');
+            const schemes = data.schemes || [];
+
+            let html = '<div class="schemes-grid">';
+            const typeLabels = { aggressive: '激进型', balanced: '稳健型', conservative: '保守型' };
+
+            schemes.forEach((s, i) => {
+                const riskClass = s.riskAssessment.level === 'high' ? 'risk-high' : s.riskAssessment.level === 'medium' ? 'risk-medium' : 'risk-low';
+                const riskText = s.riskAssessment.level === 'high' ? '高风险' : s.riskAssessment.level === 'medium' ? '中风险' : '低风险';
+                const policies = s.policies || [];
+
+                let policiesHtml = '';
+                policies.forEach((p, pi) => {
+                    const targetClass = p.target === '政府' ? 'target-gov' : p.target === '车企' ? 'target-oem' : 'target-charge';
+                    policiesHtml += '<div class="policy-item">' +
+                        '<div class="policy-item-icon">' + (pi + 1) + '</div>' +
+                        '<div class="policy-item-content">' +
+                        '<div class="policy-item-title">' + p.title + '</div>' +
+                        '<div class="policy-item-detail">' + p.detail + '</div>' +
+                        '<div class="policy-item-meta">' +
+                        '<span>效果: <b style="color:var(--accent-cyan)">' + (p.impact || '--') + '</b></span>' +
+                        '<span>周期: ' + (p.timeline || '--') + '</span>' +
+                        '<span class="policy-item-target ' + targetClass + '">' + p.target + '</span>' +
+                        '</div></div></div>';
+                });
+
+                const pe = s.predictedEffect || {};
+
+                html += '<div class="scheme-card">' +
+                    '<div class="scheme-card-header">' +
+                    '<div class="scheme-card-type">' + (typeLabels[s.type] || s.type || '方案') + '</div>' +
+                    '<div class="scheme-card-name">' + s.name + '</div>' +
+                    '<div class="scheme-card-desc">' + s.description + '</div>' +
+                    '</div>' +
+                    '<div class="scheme-card-body">' + policiesHtml + '</div>' +
+                    '<div class="scheme-card-footer">' +
+                    '<div class="effect-item"><div class="effect-label">销量增长</div><div class="effect-value">' + (pe.salesGrowth || '--') + '</div></div>' +
+                    '<div class="effect-item"><div class="effect-label">均衡改善</div><div class="effect-value">' + (pe.balanceImprovement || '--') + '</div></div>' +
+                    '<div class="effect-item"><div class="effect-label">充电覆盖</div><div class="effect-value">' + (pe.chargingCoverage || '--') + '</div></div>' +
+                    '</div>' +
+                    '<div style="padding:8px 14px 10px;display:flex;justify-content:space-between;align-items:center;">' +
+                    '<span class="risk-badge ' + riskClass + '">' + riskText + ': ' + s.riskAssessment.description + '</span>' +
+                    '</div>';
+
+                // Stakeholder impact
+                if (s.stakeholderImpact) {
+                    const si = s.stakeholderImpact;
+                    html += '<div style="padding:0 14px 10px;">' +
+                        '<div class="stakeholder-row"><span class="sh-label gov">政府</span><span>' + si.government + '</span></div>' +
+                        '<div class="stakeholder-row"><span class="sh-label oem">车企</span><span>' + si.oem + '</span></div>' +
+                        '<div class="stakeholder-row"><span class="sh-label charge">充电</span><span>' + si.chargingOp + '</span></div>' +
+                        '</div>';
+                }
+
+                html += '</div>';
+            });
+            html += '</div>';
+
+            // Overall recommendation
+            if (data.overallRecommendation) {
+                html += '<div class="overall-rec"><strong>综合建议：</strong>' + data.overallRecommendation + '</div>';
+            }
+            if (isFallback) {
+                html += '<div class="ai-fallback-note">* AI 服务暂不可用，当前显示预设分析方案</div>';
+            }
+
+            container.innerHTML = html;
+        }
+
+        // ── POLICY SIMULATOR ──
+        let simDebounce = null;
+        function updateSimulation() {
+            const subsidy = document.getElementById('sl-subsidy').value;
+            const purchase = document.getElementById('sl-purchase').value;
+            const charging = document.getElementById('sl-charging').value;
+            const carbon = document.getElementById('sl-carbon').value;
+
+            document.getElementById('sv-subsidy').textContent = subsidy;
+            document.getElementById('sv-purchase').textContent = purchase;
+            document.getElementById('sv-charging').textContent = charging;
+            document.getElementById('sv-carbon').textContent = carbon;
+
+            clearTimeout(simDebounce);
+            simDebounce = setTimeout(() => {
+                fetch('/api/policy/simulation?subsidyLevel=' + subsidy + '&purchaseLimit=' + purchase + '&chargingInvestment=' + charging + '&carbonQuota=' + carbon)
+                    .then(r => r.json())
+                    .then(res => {
+                        if (res.success) renderSimChart(res.data);
+                    })
+                    .catch(err => console.error('Sim error:', err));
+            }, 300);
+        }
+
+        function renderSimChart(data) {
+            const tl = data.timeline;
+            document.getElementById('sk-growth').textContent = data.kpiImpact.overallGrowth.toFixed(1);
+            document.getElementById('sk-balance').textContent = data.kpiImpact.balanceImprovement.toFixed(1);
+
+            simChart.setOption({
+                tooltip: { ...TT, trigger: 'axis' },
+                legend: {
+                    data: ['基准走势', '政策调整后', '过热省份', '待扶持省份'],
+                    top: 6, right: 8,
+                    textStyle: { color: '#e8edf5', fontSize: 11, fontFamily: "'Noto Sans SC', sans-serif" },
+                    itemWidth: 24, itemHeight: 4, itemGap: 16
+                },
+                grid: { left: 6, right: 16, top: 42, bottom: 10, containLabel: true },
+                xAxis: {
+                    type: 'category', data: tl.months,
+                    axisLine: { lineStyle: { color: 'rgba(0,240,255,0.12)' } },
+                    axisTick: { show: false },
+                    axisLabel: { color: '#7b8db5', fontSize: 10, formatter: function(v) { return v.substring(5); } }
+                },
+                yAxis: {
+                    type: 'value',
+                    splitLine: { lineStyle: { color: 'rgba(0,240,255,0.06)' } },
+                    axisLine: { show: false }, axisTick: { show: false },
+                    axisLabel: { color: '#4a5a7a', fontSize: 10 }
+                },
+                series: [
+                    {
+                        name: '基准走势', type: 'line', data: tl.baseProjection, smooth: true,
+                        lineStyle: { width: 2, color: '#4a5a7a', type: 'dashed' },
+                        itemStyle: { color: '#4a5a7a' },
+                        symbol: 'none'
+                    },
+                    {
+                        name: '政策调整后', type: 'line', data: tl.policyProjection, smooth: true,
+                        lineStyle: { width: 3, color: '#00f0ff' },
+                        itemStyle: { color: '#00f0ff' },
+                        areaStyle: {
+                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                { offset: 0, color: 'rgba(0, 240, 255, 0.15)' },
+                                { offset: 1, color: 'rgba(0, 240, 255, 0.0)' }
+                            ])
+                        },
+                        symbol: 'circle', symbolSize: 6
+                    },
+                    {
+                        name: '过热省份', type: 'line', data: tl.overheatedProjection, smooth: true,
+                        lineStyle: { width: 2, color: '#ff3d5a' },
+                        itemStyle: { color: '#ff3d5a' },
+                        symbol: 'none'
+                    },
+                    {
+                        name: '待扶持省份', type: 'line', data: tl.underdevelopedProjection, smooth: true,
+                        lineStyle: { width: 2, color: '#00ff88' },
+                        itemStyle: { color: '#00ff88' },
+                        areaStyle: {
+                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                { offset: 0, color: 'rgba(0, 255, 136, 0.1)' },
+                                { offset: 1, color: 'rgba(0, 255, 136, 0.0)' }
+                            ])
+                        },
+                        symbol: 'none'
+                    }
+                ],
+                animationDuration: 600
+            }, true);
+        }
+
+        // Slider events
+        ['sl-subsidy', 'sl-purchase', 'sl-charging', 'sl-carbon'].forEach(id => {
+            document.getElementById(id).addEventListener('input', updateSimulation);
+        });
+
+        // ── RESIZE ──
+        window.addEventListener('resize', function() {
+            healthBarChart.resize();
+            sankeyChart.resize();
+            radarChart.resize();
+            heatmapChart.resize();
+            simChart.resize();
+        });
+
+        // ── INIT ──
+        loadAllData();
+        updateSimulation();
+    })();
+    </script>
+</body>
+</html>

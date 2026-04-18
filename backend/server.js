@@ -16,10 +16,12 @@ app.use(express.static(path.join(__dirname, '../frontend')));
 // 导入路由
 const dataRoutes = require('./routes/data');
 const predictionRoutes = require('./routes/prediction');
+const policyRoutes = require('./routes/policy');
 
 // 使用路由
 app.use('/api/data', dataRoutes);
 app.use('/api/prediction', predictionRoutes);
+app.use('/api/policy', policyRoutes);
 
 // 静态文件服务
 app.get('/', (req, res) => {
