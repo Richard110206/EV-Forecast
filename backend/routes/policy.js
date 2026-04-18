@@ -191,14 +191,16 @@ function calculateRegionalHealth(year) {
         );
 
         // Status determination
+        // Overheated: sales well above average (top tier provinces)
+        // Underdeveloped: sales well below average with poor charging infra
         let status = 'healthy';
         let riskLevel = 'low';
-        if (salesRatio > 1.8 && growthRate > 25) {
+        if (salesRatio > 1.5) {
             status = 'overheated';
-            riskLevel = salesRatio > 2.2 ? 'high' : 'medium';
-        } else if (salesRatio < 0.6 && parseFloat(chargingDensity) < 12) {
+            riskLevel = salesRatio > 1.8 ? 'high' : 'medium';
+        } else if (salesRatio < 0.65 && parseFloat(chargingDensity) < 15) {
             status = 'underdeveloped';
-            riskLevel = salesRatio < 0.4 ? 'high' : 'medium';
+            riskLevel = salesRatio < 0.45 ? 'high' : 'medium';
         }
 
         return {
